@@ -1,0 +1,25 @@
+appId: com.chiyo.app
+productName: Chiyo
+directories:
+  output: release/${version}
+files:
+  - dist
+  - dist-electron
+  - package.json
+win:
+  target:
+    - nsis
+  artifactName: ${productName}.Setup.${version}.${ext}
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  runAfterFinish: true
+extraResources:
+  - from: app-data
+    to: app-data
+    filter:
+      - "**/*"
+# Native dependencies like better-sqlite3 require this
+asarUnpack:
+  - "**/*.node"
