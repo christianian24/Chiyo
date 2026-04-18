@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, BookOpen, Settings } from 'lucide-react'
+import { Plus, Search, BookOpen, Settings, Filter } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Manga } from './types'
 import Library from './pages/Library'
@@ -8,6 +8,10 @@ import AddEditModal from './components/AddEditModal'
 import SettingsModal from './components/SettingsModal'
 import SplashScreen from './components/SplashScreen'
 import ConfirmModal from './components/ConfirmModal'
+
+const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Slice of Life", "Sci-Fi", "Mystery"]
+const FORMATS = ["Manga", "Manhwa", "Manhua", "Light Novel", "One-shot"]
+const PUB_STATUSES = ["Ongoing", "Completed", "Hiatus", "Cancelled"]
 
 declare global {
   interface Window {
@@ -26,6 +30,9 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [selectedGenre, setSelectedGenre] = useState<string>('Any')
+  const [selectedFormat, setSelectedFormat] = useState<string>('Any')
+  const [selectedPubStatus, setSelectedPubStatus] = useState<string>('Any')
   const [loading, setLoading] = useState(true)
   const [showSplash, setShowSplash] = useState(true)
   const [isLogoLoaded, setIsLogoLoaded] = useState(false)
@@ -105,7 +112,10 @@ function App() {
   const filteredMangas = mangas.filter((m: Manga) => {
     const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = statusFilter === 'all' || m.status === statusFilter
-    return matchesSearch && matchesStatus
+    const matchesGenre = selectedGenre === 'Any' || (m.genres && m.genres.split(',').includes(selectedGenre))
+    const matchesFormat = selectedFormat === 'Any' || m.format === selectedFormat
+    const matchesPubStatus = selectedPubStatus === 'Any' || m.publishing_status === selectedPubStatus
+    return matchesSearch && matchesStatus && matchesGenre && matchesFormat && matchesPubStatus
   })
 
   const selectedManga = mangas.find((m: Manga) => m.id === selectedMangaId)
@@ -130,73 +140,125 @@ function App() {
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
             
             {/* Header */}
-            <header className="h-20 border-b border-white/[0.03] flex items-center justify-between px-10 bg-background/80 backdrop-blur-xl z-20 shrink-0">
-              <div className="flex items-center gap-10">
+            <header className="pt-6 pb-2 px-10 bg-background z-20 shrink-0 flex flex-col gap-4">
+              {/* Tier 1: Logo & Tabs */}
+              <div className="flex items-center justify-between h-12">
                 <div 
                   className="flex items-center gap-3 cursor-pointer group"
                   onClick={() => setSelectedMangaId(null)}
                 >
-                  <div className="relative w-10 h-10 group-hover:scale-110 transition-transform duration-500">
-                    {/* Logo Glow */}
-                    <div className="absolute inset-0 bg-accent/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-8 h-8">
                     <img 
                       src="logo.jpg" 
                       alt="Chiyo Logo" 
-                      className="w-full h-full object-contain relative z-10"
+                      className="w-full h-full object-cover rounded-md"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = '<div class="w-10 h-10 bg-accent rounded-2xl flex items-center justify-center text-background font-black">千</div>';
+                        e.currentTarget.parentElement!.innerHTML = '<div class="w-8 h-8 bg-accent rounded-md flex items-center justify-center text-background font-black text-sm">千</div>';
                       }}
                     />
                   </div>
-                  <h1 className="text-xl font-black tracking-tight uppercase italic underline underline-offset-4 decoration-white/20">Chiyo</h1>
+                  <h1 className="text-lg font-black tracking-tighter uppercase italic text-white flex items-center gap-2">
+                    <span className="bg-white/10 px-1.5 py-0.5 rounded border border-white/5 not-italic text-[10px] tracking-widest">CHIYO</span>
+                  </h1>
                 </div>
-                
-                <button 
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="p-2 hover:bg-white/5 rounded-xl transition-colors opacity-30 hover:opacity-100"
-                >
-                  <Settings size={20} />
-                </button>
-              </div>
 
-              {!selectedMangaId && (
-                <div className="flex items-center gap-6 flex-1 max-w-2xl mx-12">
-                  <div className="relative flex-1 group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-white transition-colors" />
-                    <input 
-                      type="text" 
-                      placeholder="Search series..." 
-                      className="input pl-12 h-11 bg-white/[0.02] border-white/5"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-1 p-1.5 bg-white/[0.03] rounded-2xl border border-white/5">
+                {!selectedMangaId && (
+                  <div className="flex items-center gap-8">
                     {['all', 'reading', 'completed'].map((status) => (
                       <button
                         key={status}
                         onClick={() => setStatusFilter(status)}
-                        className={`px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        className={`relative py-2 text-xs font-bold uppercase tracking-[0.2em] transition-all ${
                           statusFilter === status 
-                          ? 'bg-accent text-background shadow-lg shadow-white/5' 
+                          ? 'text-accent' 
                           : 'text-text-muted hover:text-white'
                         }`}
                       >
                         {status}
+                        {statusFilter === status && (
+                          <motion.div 
+                            layoutId="activeTab"
+                            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent rounded-full"
+                          />
+                        )}
                       </button>
                     ))}
                   </div>
+                )}
+                
+                <div className="w-[180px]" /> {/* Balancing spacer */}
+              </div>
+
+              {/* Tier 2: Search & Actions */}
+              {!selectedMangaId && (
+                <div className="flex items-center gap-3">
+                  {/* Genres Filter */}
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-3 opacity-50">Genre</span>
+                    <select 
+                      className="bg-surface/50 border border-white/5 rounded-xl px-4 h-10 text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none cursor-pointer hover:bg-white/5 transition-all w-[120px] appearance-none"
+                      value={selectedGenre}
+                      onChange={(e) => setSelectedGenre(e.target.value)}
+                    >
+                      <option value="Any">Any</option>
+                      {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Format Filter */}
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-3 opacity-50">Format</span>
+                    <select 
+                      className="bg-surface/50 border border-white/5 rounded-xl px-4 h-10 text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none cursor-pointer hover:bg-white/5 transition-all w-[110px] appearance-none"
+                      value={selectedFormat}
+                      onChange={(e) => setSelectedFormat(e.target.value)}
+                    >
+                      <option value="Any">Any</option>
+                      {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-3 opacity-50">Status</span>
+                    <select 
+                      className="bg-surface/50 border border-white/5 rounded-xl px-4 h-10 text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none cursor-pointer hover:bg-white/5 transition-all w-[110px] appearance-none"
+                      value={selectedPubStatus}
+                      onChange={(e) => setSelectedPubStatus(e.target.value)}
+                    >
+                      <option value="Any">Any</option>
+                      {PUB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="relative flex-1 group self-end mb-0.5">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
+                    <input 
+                      type="text" 
+                      placeholder="Search series..." 
+                      className="input pl-11 h-10 bg-surface/50 border-white/5 focus:border-accent/40 text-sm"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  
+                  <button 
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="w-10 h-10 flex items-center justify-center bg-surface/50 rounded-xl border border-white/5 hover:bg-white/5 transition-colors text-text-muted hover:text-white self-end mb-0.5"
+                  >
+                    <Settings size={18} />
+                  </button>
+
+                  <button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="btn btn-primary h-10 flex items-center gap-2 px-6 self-end mb-0.5"
+                  >
+                    <Plus size={18} strokeWidth={3} />
+                    <span className="text-xs uppercase tracking-[0.2em] font-black">Add New</span>
+                  </button>
                 </div>
               )}
-
-              <button 
-                onClick={() => setIsAddModalOpen(true)}
-                className="btn btn-primary flex items-center gap-2 px-6"
-              >
-                <Plus size={20} strokeWidth={2.5} />
-                <span className="text-xs uppercase tracking-widest font-black">Add New</span>
-              </button>
             </header>
 
             {/* Main Content */}

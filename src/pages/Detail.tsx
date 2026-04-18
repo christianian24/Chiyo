@@ -1,6 +1,6 @@
 import { Manga } from '../types'
-import { ArrowLeft, Edit2, Trash2, Plus, Minus, Calendar, BookOpen, Clock, CheckCircle2, XCircle } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { ArrowLeft, Edit2, Trash2, Plus, Minus, Calendar, BookOpen, Clock, CheckCircle2, XCircle, Hash, Layers, Info, Zap } from 'lucide-react'
+import { motion, Variants } from 'framer-motion'
 
 interface DetailProps {
   manga: Manga;
@@ -11,25 +11,26 @@ interface DetailProps {
 }
 
 const statusConfig = {
-  reading: { icon: BookOpen, color: 'text-primary', label: 'Reading' },
-  completed: { icon: CheckCircle2, color: 'text-success', label: 'Completed' },
-  'on-hold': { icon: Clock, color: 'text-warning', label: 'On Hold' },
-  dropped: { icon: XCircle, color: 'text-error', label: 'Dropped' },
+  'plan-to-read': { icon: Clock, color: 'text-text-muted', label: 'Not Started', bg: 'bg-white/5' },
+  reading: { icon: BookOpen, color: 'text-accent', label: 'Reading', bg: 'bg-accent/10' },
+  completed: { icon: CheckCircle2, color: 'text-success', label: 'Completed', bg: 'bg-success/10' },
+  'on-hold': { icon: Clock, color: 'text-warning', label: 'On Hold', bg: 'bg-warning/10' },
+  dropped: { icon: XCircle, color: 'text-error', label: 'Dropped', bg: 'bg-error/10' },
 };
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08
+      staggerChildren: 0.1
     }
   }
 };
 
-const item = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 }
+const item: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] } }
 };
 
 export default function Detail({ manga, onBack, onDelete, onEdit, onUpdateChapter }: DetailProps) {
@@ -41,12 +42,21 @@ export default function Detail({ manga, onBack, onDelete, onEdit, onUpdateChapte
     onUpdateChapter(manga.id, newChapter);
   };
 
+  const progressPercent = Math.min((manga.current_chapter / (manga.total_chapters || 1)) * 100, 100);
+
   return (
-    <div className="relative min-h-[80vh]">
-      {/* Hero Background Decor */}
-      <div className="absolute inset-0 -top-20 -mx-10 overflow-hidden pointer-events-none opacity-[0.15] blur-[120px]">
+    <div className="relative min-h-[80vh] pb-10">
+      {/* Cinematic Background Glow */}
+      <div className="absolute inset-x-0 -top-40 h-[600px] pointer-events-none overflow-hidden">
+        <div 
+          className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-accent/10 blur-[140px] rounded-full animate-pulse"
+          style={{ transition: 'background-color 1s ease' }}
+        />
         {manga.cover_url && (
-          <img src={manga.cover_url} className="w-full h-full object-cover scale-150 rotate-6" />
+          <img 
+            src={manga.cover_url} 
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.05] blur-[80px] scale-150"
+          />
         )}
       </div>
 
@@ -54,128 +64,187 @@ export default function Detail({ manga, onBack, onDelete, onEdit, onUpdateChapte
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={onBack}
-        className="btn flex items-center gap-2 mb-8 group relative z-10 px-0 bg-transparent hover:bg-transparent text-text-muted hover:text-white transition-colors"
+        className="flex items-center gap-2 mb-12 group relative z-10 text-text-muted hover:text-white transition-colors py-2"
       >
-        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        <span className="text-[10px] uppercase font-black tracking-[0.2em]">Return to Library</span>
+        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+        <span className="text-[10px] uppercase font-black tracking-[0.3em]">Return to Library</span>
       </motion.button>
 
-      <div className="flex flex-col lg:flex-row gap-10 relative z-10">
-        {/* Cover Image Side (Hero card) - Compact Width */}
+      <div className="flex flex-col lg:flex-row gap-16 relative z-10">
+        {/* HERO SIDEBAR: Cover Artwork */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full lg:w-64 shrink-0"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full lg:w-80 shrink-0"
         >
-          <div className="card shadow-2xl overflow-hidden ring-1 ring-white/5 group rounded-[2rem]">
-            {manga.cover_url ? (
-              <img src={manga.cover_url} alt={manga.title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="aspect-[3/4] w-full bg-white/[0.02] flex items-center justify-center text-text-muted">
-                <BookOpen size={48} strokeWidth={0.5} className="opacity-10" />
+          <div className="relative group">
+            <div className="absolute -inset-4 bg-accent/20 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+            <div className="relative aspect-[3/4.5] bg-surface-lighter rounded-[2.5rem] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] border border-white/10 ring-1 ring-white/5">
+              {manga.cover_url ? (
+                <img src={manga.cover_url} alt={manga.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-4 opacity-10">
+                  <BookOpen size={64} strokeWidth={0.5} />
+                  <span className="text-xs uppercase tracking-widest font-black">Missing Artwork</span>
+                </div>
+              )}
+              {/* Quick Status Overlay */}
+              <div className="absolute top-6 right-6">
+                <div className={`px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/10 shadow-2xl flex items-center gap-2 ${status.bg}`}>
+                  <StatusIcon size={12} className={status.color} />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-white">{status.label}</span>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </motion.div>
 
-        {/* Info Side */}
+        {/* CONTENT SIDE: Metrics & Metadata */}
         <motion.div 
           variants={staggerContainer}
           initial="hidden"
           animate="show"
-          className="flex-1 space-y-10"
+          className="flex-1 space-y-12"
         >
-          <motion.div variants={item} className="space-y-3">
-            <div className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-[0.2em] bg-white/[0.03] border border-white/5 ${status.color}`}>
-              <StatusIcon size={12} />
-              {status.label}
-            </div>
-            <h2 className="text-4xl font-black text-white leading-tight tracking-tighter italic uppercase underline underline-offset-8 decoration-white/5">
-              {manga.title}
-            </h2>
-            <div className="flex items-center gap-3 text-text-muted text-[9px] uppercase tracking-widest font-black opacity-50">
-              <Clock size={10} />
-              <span>Initialized</span>
-              <div className="w-1 h-1 rounded-full bg-white/20" />
-              <span>{new Date(manga.created_at).toLocaleDateString()}</span>
-            </div>
-          </motion.div>
-
-          <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {/* Progress Card - Tightened */}
-            <div className="glass p-6 rounded-2xl relative overflow-hidden group border-white/5">
-              <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                <BookOpen size={48} />
-              </div>
-              <p className="text-text-muted text-[9px] font-black uppercase tracking-[0.25em] mb-4 opacity-40">Dynamic Progress</p>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-black text-white italic">{manga.current_chapter}</span>
-                  <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest">Chapter</span>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => handleChapterChange(-1)}
-                    className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <button 
-                    onClick={() => handleChapterChange(1)}
-                    className="w-10 h-10 rounded-xl bg-accent text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg"
-                  >
-                    <Plus size={16} strokeWidth={3} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Total Card - Tightened */}
-            <div className="glass p-6 rounded-2xl relative overflow-hidden group border-white/5">
-              <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:opacity-10 transition-opacity">
-                <CheckCircle2 size={48} />
-              </div>
-              <p className="text-text-muted text-[9px] font-black uppercase tracking-[0.25em] mb-4 opacity-40">Volume Scope</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-black italic">{manga.total_chapters || '—'}</span>
-                <span className="text-[10px] font-bold opacity-30 uppercase tracking-widest">Available</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Operational Timeline - Compact */}
+          {/* HEADER: Title & Basic Info */}
           <motion.div variants={item} className="space-y-4">
-            <h4 className="flex items-center gap-3 text-[10px] font-black text-white uppercase tracking-[0.3em] opacity-30">
-              <Calendar size={12} />
-              Lifecycle
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/[0.015] p-5 rounded-xl border border-white/[0.03]">
-                <p className="text-text-muted text-[8px] uppercase tracking-widest font-black mb-2 opacity-30">Commenced</p>
-                <p className="font-black text-sm italic">{manga.date_started || '—'}</p>
+            <h1 className="text-5xl lg:text-7xl font-black text-white leading-[0.9] tracking-tighter italic uppercase">
+              {manga.title}
+            </h1>
+            <div className="flex items-center gap-6 text-text-muted/40 font-black text-[10px] uppercase tracking-[0.2em] ml-1">
+               <div className="flex items-center gap-2">
+                 <Calendar size={12} />
+                 <span>Started {new Date(manga.created_at).toLocaleDateString()}</span>
+               </div>
+               <div className="w-[1px] h-3 bg-white/10" />
+               <div className="flex items-center gap-2">
+                 <Layers size={12} />
+                 <span>{manga.format || 'Standard Format'}</span>
+               </div>
+            </div>
+          </motion.div>
+
+          {/* METRICS: Progress Tracking */}
+          <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Dynamic Progress Card */}
+            <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-[2rem] p-8 relative overflow-hidden group shadow-2xl">
+
+              
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-accent">Dynamic Progress</span>
+                  <div className="flex gap-2">
+                     <button 
+                       onClick={() => handleChapterChange(-1)}
+                       className="w-10 h-10 rounded-xl bg-white/5 border border-white/5 flex items-center justify-center hover:bg-white/10 transition-colors text-white/40 hover:text-white"
+                     >
+                       <Minus size={16} />
+                     </button>
+                     <button 
+                       onClick={() => handleChapterChange(1)}
+                       className="w-10 h-10 rounded-xl bg-accent text-background flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg"
+                     >
+                       <Plus size={16} strokeWidth={3} />
+                     </button>
+                  </div>
+                </div>
+
+                <div className="flex items-baseline gap-3">
+                  <span className="text-5xl font-black text-white italic leading-none">{manga.current_chapter}</span>
+                  <span className="text-xs font-bold text-text-muted/40 uppercase tracking-widest mb-1">Chapters Read</span>
+                </div>
+
+                {/* Progress Bar Visualizer */}
+                <div className="space-y-2">
+                  <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                      className="h-full bg-accent relative"
+                    >
+                      <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                    </motion.div>
+                  </div>
+                  <div className="flex justify-between text-[8px] font-black uppercase tracking-widest text-text-muted/30">
+                    <span>Journey Started</span>
+                    <span>{manga.total_chapters || '∞'} Available</span>
+                  </div>
+                </div>
               </div>
-              <div className="bg-white/[0.015] p-5 rounded-xl border border-white/[0.03]">
-                <p className="text-text-muted text-[8px] uppercase tracking-widest font-black mb-2 opacity-30">Concluded</p>
-                <p className="font-black text-sm italic">{manga.date_finished || '—'}</p>
+            </div>
+
+            {/* Total Scope Card */}
+            <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-[2rem] p-8 relative overflow-hidden group shadow-2xl">
+
+              <div className="flex flex-col gap-6">
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted/40">Series Specifications</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[8px] font-black text-text-muted/20 uppercase tracking-widest leading-none">Status</p>
+                    <p className="text-sm font-black uppercase italic text-white/90">{manga.publishing_status || 'Ongoing'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[8px] font-black text-text-muted/20 uppercase tracking-widest leading-none">Format</p>
+                    <p className="text-sm font-black uppercase italic text-white/90">{manga.format || 'Standard'}</p>
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-white/5 space-y-4">
+                  <p className="text-[8px] font-black text-text-muted/20 uppercase tracking-widest leading-none">Category Overview</p>
+                  <div className="flex flex-wrap gap-2">
+                    {manga.genres ? manga.genres.split(',').map(genre => (
+                      <span key={genre} className="px-3 py-1 bg-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5">
+                        {genre}
+                      </span>
+                    )) : (
+                      <span className="text-[9px] font-black uppercase text-white/10 italic">No Genres Assigned</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Action Footer - Low Profile */}
-          <motion.div variants={item} className="flex gap-3 pt-6">
+          {/* TIMELINE: Operational Lifecycle */}
+          <motion.div variants={item} className="space-y-6">
+            <div className="flex items-center gap-4">
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-text-muted opacity-40">Lifecycle Timeline</span>
+              <div className="h-[1px] flex-1 bg-white/5" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 leading-none">
+              <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.04] transition-colors">
+                 <div className="space-y-2">
+                   <p className="text-[8px] uppercase tracking-[0.2em] font-black text-text-muted/30">Start Date</p>
+                   <p className="text-base font-black italic">{manga.date_started || '—'}</p>
+                 </div>
+                 <Calendar size={20} className="text-white opacity-10 group-hover:opacity-30 transition-opacity" />
+              </div>
+              <div className="bg-white/[0.02] p-6 rounded-2xl border border-white/5 flex items-center justify-between group hover:bg-white/[0.04] transition-colors">
+                 <div className="space-y-2">
+                   <p className="text-[8px] uppercase tracking-[0.2em] font-black text-text-muted/30">Finish Date</p>
+                   <p className="text-base font-black italic">{manga.date_finished || '—'}</p>
+                 </div>
+                 <CheckCircle2 size={20} className="text-white opacity-10 group-hover:opacity-30 transition-opacity" />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* ACTIONS: Operational Control */}
+          <motion.div variants={item} className="flex gap-4 pt-8">
             <button 
               onClick={() => onEdit(manga)}
-              className="px-6 py-3 rounded-xl bg-white/[0.02] border border-white/5 flex-[4] flex items-center justify-center gap-3 hover:bg-white/5 transition-colors"
+              className="flex-[4] h-16 rounded-[1.25rem] bg-white/[0.03] border border-white/5 flex items-center justify-center gap-4 hover:bg-white/5 transition-all group overflow-hidden relative shadow-2xl"
             >
-              <Edit2 size={16} className="opacity-30" />
-              <span className="text-[10px] uppercase tracking-[0.25em] font-black">Refine Data</span>
+              <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+              <Edit2 size={18} className="text-accent opacity-60 relative z-10" />
+              <span className="text-[11px] uppercase tracking-[0.35em] font-black relative z-10">Refine Collection Data</span>
             </button>
             <button 
               onClick={() => onDelete(manga.id, manga.cover_path)}
-              className="w-12 h-12 rounded-xl bg-red-500/5 text-red-500/30 hover:bg-red-500/10 hover:text-red-500 border border-white/5 flex items-center justify-center transition-all"
+              className="w-16 h-16 rounded-[1.25rem] bg-red-500/5 text-red-500/30 hover:bg-red-500/10 hover:text-red-500 border border-white/5 flex items-center justify-center transition-all group shadow-2xl"
             >
-              <Trash2 size={18} />
+              <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
             </button>
           </motion.div>
         </motion.div>

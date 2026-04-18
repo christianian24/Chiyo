@@ -32,14 +32,14 @@ export default function Library({ mangas, onSelect, onQuickUpdate, loading }: Li
 
   if (mangas.length === 0) {
     return (
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="h-[60vh] flex flex-col items-center justify-center text-text-muted gap-6"
       >
         <div className="relative">
           <LibraryIcon size={120} strokeWidth={0.5} className="opacity-10" />
-          <motion.div 
+          <motion.div
             animate={{ scale: [1, 1.1, 1] }}
             transition={{ duration: 4, repeat: Infinity }}
             className="absolute inset-0 bg-accent/5 blur-[60px] rounded-full"
@@ -54,16 +54,16 @@ export default function Library({ mangas, onSelect, onQuickUpdate, loading }: Li
   }
 
   return (
-    <motion.div 
+    <motion.div
       variants={container}
       initial="hidden"
       animate="show"
-      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-8"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-6"
     >
       {mangas.map(manga => (
-        <MangaCard 
-          key={manga.id} 
-          manga={manga} 
+        <MangaCard
+          key={manga.id}
+          manga={manga}
           onClick={onSelect}
           onQuickUpdate={onQuickUpdate}
         />

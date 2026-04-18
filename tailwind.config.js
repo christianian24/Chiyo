@@ -7,19 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#0a0b0d", // Deep ink
-        surface: "#12141a",    // Dark charcoal
-        "surface-lighter": "#1c1f26", // Lighter charcoal for hover
-        accent: "#ffffff",     // Pure white for highlights
+        background: "#0d0e12", // Deeper black
+        surface: "#15171e",    // Darker surface
+        "surface-lighter": "#1c1f26",
+        accent: "#ff4d4d",     // Vibrant Red
         text: {
-          DEFAULT: "#e1e1e6",  // Off-white text
+          DEFAULT: "#f1f1f1",  // Crisp white
           muted: "#71717a",    // Zinc-like muted text
         },
-        // Status colors remain for badges as requested
-        primary: "#3b82f6",     // Blue highlight (reading)
-        success: "#22c55e",     // Green highlight (completed)
-        warning: "#eab308",     // Amber highlight (on-hold)
-        error: "#ef4444",       // Red highlight (dropped)
+        // Status colors mapping to the new theme
+        primary: "#ff4d4d",     // Red for reading
+        success: "#22c55e",     // Green for completed
+        warning: "#eab308",     // Amber highlight
+        error: "#ef4444",       // Dropped
       },
       boxShadow: {
         'premium': '0 20px 40px -15px rgba(0, 0, 0, 0.7)',
