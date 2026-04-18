@@ -34,8 +34,10 @@ let win: BrowserWindow | null
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1400,
+    height: 900,
+    minWidth: 1280,
+    minHeight: 800,
     show: false, // Prevent flicker
     icon: path.join(process.env.VITE_PUBLIC || '', 'logo.jpg'),
     webPreferences: {

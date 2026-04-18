@@ -1,59 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Syncopate:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --accent: #ff4d4d;
+  --background: #0a0b0d;
+  --surface: #121418;
+  --surface-lighter: #1a1d23;
+  --text: #ffffff;
+  --text-muted: #8b8d91;
+}
+
 @layer base {
   body {
-    @apply bg-background text-text selection:bg-accent/20;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
+    @apply bg-background text-text font-sans antialiased selection:bg-accent/30 overflow-hidden;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(255, 77, 77, 0.03) 0%, transparent 50%),
+      linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+    background-size: 100% 100%, 30px 30px, 30px 30px;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-xl font-bold transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:pointer-events-none text-[11px] uppercase tracking-widest;
+    @apply px-6 py-2 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 active:scale-95 flex items-center justify-center gap-2;
+  }
+  .btn-primary {
+    @apply bg-accent text-background hover:shadow-[0_0_20px_rgba(255,77,77,0.4)] hover:scale-[1.02];
+  }
+  .input {
+    @apply bg-surface border border-white/5 rounded-xl px-4 py-2 outline-none focus:border-accent/50 transition-all text-sm font-medium placeholder:text-text-muted/40;
   }
   
-  .btn-primary {
-    @apply border border-accent/40 text-accent hover:bg-accent/10 hover:border-accent shadow-lg shadow-accent/5;
+  /* RedMagic Hardware Styles */
+  .tactical-border {
+    @apply relative border border-white/5;
+    background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+  }
+  
+  .tactical-border::before {
+    content: '';
+    @apply absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-accent/40 opacity-0 transition-opacity duration-500;
+  }
+  
+  .tactical-border:hover::before {
+    @apply opacity-100;
   }
 
-  .btn-secondary {
-    @apply bg-white/5 text-text hover:bg-white/10 border border-white/5 backdrop-blur-md;
+  .red-magic-glow {
+    box-shadow: 0 0 40px -10px rgba(255, 77, 77, 0.15);
   }
 
-  .card {
-    @apply bg-surface/60 rounded-2xl overflow-hidden border border-white/5 backdrop-blur-sm transition-all duration-500 hover:border-accent/40 hover:shadow-premium;
+  .font-mono-tech {
+    font-family: 'JetBrains Mono', monospace;
   }
 
-  .glass {
-    @apply bg-white/[0.03] backdrop-blur-2xl border border-white/10;
-  }
-
-  .input {
-    @apply w-full bg-surface-lighter border border-white/5 rounded-xl px-4 py-2 outline-none focus:border-accent/40 transition-all text-sm;
-  }
-
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
+  /* Custom Scrollbar for a technical look */
   .custom-scrollbar::-webkit-scrollbar {
-    height: 4px;
-    display: block;
+    width: 3px;
+    height: 3px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-white/[0.02] rounded-full;
+    @apply bg-transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-white/10 rounded-full hover:bg-accent/40 transition-colors;
   }
+}
 
-  /* Style native select dropdown options for dark theme */
-  select option {
-    background-color: #15171e; /* Matches surface color */
-    color: white;
-    padding: 10px;
-  }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

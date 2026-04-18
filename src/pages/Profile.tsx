@@ -118,7 +118,7 @@ const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={onBack}
-            className="flex items-center gap-2 group text-text-muted hover:text-white transition-colors py-2"
+            className="flex items-center gap-2 group text-accent hover:text-white transition-colors py-2"
           >
             <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
             <span className="text-[10px] uppercase font-black tracking-[0.3em]">Return to Library</span>

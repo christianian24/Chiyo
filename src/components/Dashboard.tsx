@@ -10,7 +10,7 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  
+
   const recentManga = manga
     .filter(m => m.status === 'reading')
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
@@ -37,11 +37,13 @@ const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
   if (recentManga.length === 0) return null;
 
   return (
-    <div className="mb-14 space-y-6">
+    <div className="mb-0 space-y-6">
       <div className="flex items-center justify-between px-2">
         <div className="flex items-center gap-3">
           <Activity size={14} className="text-accent animate-pulse" />
-          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-text-muted/60">Continuation Sequence</h2>
+          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white">
+            <span className="text-accent">Continuation</span> Sequence
+          </h2>
         </div>
         <div className="h-[1px] flex-1 mx-8 bg-white/5" />
       </div>
@@ -90,10 +92,10 @@ const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
                             {item.current_chapter}
                           </span>
                           <span className="text-[8px] font-bold text-text-muted/50 uppercase tracking-widest">
-                             / {item.total_chapters || '??'}
+                            / {item.total_chapters || '??'}
                           </span>
                         </div>
-                        
+
                         <div className="w-8 h-8 flex items-center justify-center bg-accent/10 border border-accent/20 rounded-full group-hover:bg-accent group-hover:border-accent transition-all duration-500">
                           <Play size={10} className="fill-accent text-accent group-hover:fill-background group-hover:text-background transition-colors" />
                         </div>
@@ -115,16 +117,16 @@ const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
 
                   {/* Top Status */}
                   <div className="absolute top-4 left-4">
-                     <div className="px-2 py-0.5 bg-black/40 backdrop-blur-md rounded-md border border-white/5">
-                        <span className="text-[7px] font-black uppercase tracking-widest text-accent italic">Neural Link</span>
-                     </div>
+                    <div className="px-2 py-0.5 bg-black/40 backdrop-blur-md rounded-md border border-white/5">
+                      <span className="text-[7px] font-black uppercase tracking-widest text-accent italic">Neural Link</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
             );
           })}
         </div>
-        
+
         {/* Right Gradient Mask */}
         <div className="absolute top-0 bottom-8 right-0 w-32 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 opacity-60" />
       </div>
