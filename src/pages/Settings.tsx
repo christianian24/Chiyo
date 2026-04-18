@@ -321,7 +321,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                     <p className="text-[9px] font-black uppercase tracking-[0.6em] text-text-muted opacity-30">CORE PROCESSOR</p>
                     <div className="flex justify-between items-baseline">
                       <span className="text-3xl font-syncopate font-bold text-white italic tracking-tighter uppercase whitespace-nowrap">Chiyo Kernel</span>
-                      <span className="text-xs font-mono-tech font-bold text-accent italic">V1.2.3-STABLE</span>
+                      <span className="text-xs font-mono-tech text-accent">v1.1.0-REDMAGIC</span>
                     </div>
                  </div>
 
