@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, BookOpen } from 'lucide-react';
+import { Play, BookOpen, Clock, Activity } from 'lucide-react';
 import { Manga } from '../types';
 
 interface DashboardProps {
@@ -10,9 +10,11 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  
   const recentManga = manga
     .filter(m => m.status === 'reading')
-    .slice(0, 5);
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 10);
 
   React.useEffect(() => {
     const el = scrollRef.current;
@@ -22,7 +24,7 @@ const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         e.preventDefault();
         el.scrollBy({
-          left: e.deltaY * 10,
+          left: e.deltaY * 6,
           behavior: 'smooth'
         });
       }
@@ -35,74 +37,96 @@ const Dashboard: React.FC<DashboardProps> = ({ manga, onSelect }) => {
   if (recentManga.length === 0) return null;
 
   return (
-    <div className="mb-12 space-y-6">
+    <div className="mb-14 space-y-6">
       <div className="flex items-center justify-between px-2">
-        <h2 className="text-xs font-black uppercase tracking-[0.3em] text-text-muted/60">Continuing Reading</h2>
-        <div className="h-[1px] flex-1 mx-6 bg-white/5" />
+        <div className="flex items-center gap-3">
+          <Activity size={14} className="text-accent animate-pulse" />
+          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-text-muted/60">Continuation Sequence</h2>
+        </div>
+        <div className="h-[1px] flex-1 mx-8 bg-white/5" />
       </div>
 
       <div className="relative group/dash">
         <div
           ref={scrollRef}
-          className="flex gap-6 overflow-x-auto pb-6 -mx-2 px-2 custom-scrollbar scroll-smooth"
+          className="flex gap-6 overflow-x-auto pb-8 -mx-4 px-4 custom-scrollbar scroll-smooth"
         >
-          {recentManga.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex-shrink-0 w-[280px] group cursor-pointer"
-              onClick={() => onSelect(item.id)}
-            >
-              <div className="relative aspect-[16/9] rounded-[1.5rem] overflow-hidden border border-white/5 shadow-2xl transition-all duration-500 group-hover:border-accent/40 group-hover:shadow-accent/5">
-                {item.cover_url ? (
-                  <img
-                    src={item.cover_url}
-                    alt={item.title}
-                    className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-surface-lighter flex items-center justify-center">
-                    <BookOpen className="text-text-muted/20" size={40} />
-                  </div>
-                )}
+          {recentManga.map((item, index) => {
+            const progress = (item.current_chapter / (item.total_chapters || 100)) * 100;
 
-                {/* Premium Glass Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent flex flex-col justify-end p-5">
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-black text-white italic uppercase tracking-tight line-clamp-1 group-hover:text-accent transition-colors">
-                      {item.title}
-                    </h3>
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05, ease: [0.16, 1, 0.3, 1], duration: 0.8 }}
+                className="flex-shrink-0 w-[220px] group cursor-pointer"
+                onClick={() => onSelect(item.id)}
+              >
+                <div className="relative aspect-[3/4.5] rounded-[2rem] overflow-hidden border border-white/[0.04] shadow-2xl transition-all duration-700 group-hover:border-accent/30 group-hover:shadow-[0_0_30px_rgba(255,77,77,0.1)]">
+                  {/* Background Artwork */}
+                  {item.cover_url ? (
+                    <img
+                      src={item.cover_url}
+                      alt={item.title}
+                      className="w-full h-full object-cover grayscale-[0.3] brightness-90 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-105 transition-all duration-1000 ease-out"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-surface-lighter flex items-center justify-center">
+                      <BookOpen className="text-text-muted/10" size={48} />
+                    </div>
+                  )}
 
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-text-muted/80 uppercase">Chapter {item.current_chapter}</span>
-                      <div className="flex items-center gap-1 px-2 py-0.5 bg-accent/10 rounded-md border border-accent/20">
-                        <Play size={8} className="fill-accent text-accent" />
-                        <span className="text-[8px] font-black uppercase text-accent">Resume</span>
+                  {/* Information Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/20 to-transparent flex flex-col justify-end p-5">
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-black text-white italic uppercase tracking-tight line-clamp-2 group-hover:text-accent transition-colors leading-tight">
+                        {item.title}
+                      </h3>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-base font-syncopate font-bold text-white leading-none">
+                            {item.current_chapter}
+                          </span>
+                          <span className="text-[8px] font-bold text-text-muted/50 uppercase tracking-widest">
+                             / {item.total_chapters || '??'}
+                          </span>
+                        </div>
+                        
+                        <div className="w-8 h-8 flex items-center justify-center bg-accent/10 border border-accent/20 rounded-full group-hover:bg-accent group-hover:border-accent transition-all duration-500">
+                          <Play size={10} className="fill-accent text-accent group-hover:fill-background group-hover:text-background transition-colors" />
+                        </div>
+                      </div>
+
+                      {/* Active Progress Monitor */}
+                      <div className="h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min(progress, 100)}%` }}
+                          transition={{ duration: 1.5 }}
+                          className="h-full bg-accent relative"
+                        >
+                          <div className="absolute inset-0 bg-white/20 shadow-[0_0_5px_rgba(255,77,77,1)]" />
+                        </motion.div>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Progress Line */}
-                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden mt-1">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min((item.current_chapter / (item.total_chapters || 1)) * 100, 100)}%` }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className="h-full bg-accent shadow-[0_0_10px_rgba(255,46,46,0.3)]"
-                      />
-                    </div>
+                  {/* Top Status */}
+                  <div className="absolute top-4 left-4">
+                     <div className="px-2 py-0.5 bg-black/40 backdrop-blur-md rounded-md border border-white/5">
+                        <span className="text-[7px] font-black uppercase tracking-widest text-accent italic">Neural Link</span>
+                     </div>
                   </div>
                 </div>
-
-                {/* Hover Glow */}
-                <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/5 transition-colors duration-500" />
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
-        {/* Cinematic Right Fade Mask */}
-        <div className="absolute top-0 bottom-6 right-0 w-32 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 opacity-0 group-hover/dash:opacity-100 transition-opacity duration-500" />
+        
+        {/* Right Gradient Mask */}
+        <div className="absolute top-0 bottom-8 right-0 w-32 bg-gradient-to-l from-background to-transparent pointer-events-none z-10 opacity-60" />
       </div>
     </div>
   );

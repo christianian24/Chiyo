@@ -5,6 +5,13 @@ import { app } from 'electron';
 
 let db: Database.Database;
 
+export function closeDatabase() {
+  if (db) {
+    db.close();
+    console.log('Database connection closed.');
+  }
+}
+
 export function initDatabase() {
   const userDataPath = app.getPath('userData');
   const dbPath = path.join(userDataPath, 'chiyo.db');
@@ -76,32 +83,66 @@ export function initDatabase() {
     db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('avatar_path', '');
   }
 
-  // 4. Perform rolling backup (async)
-  try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupFile = `chiyo-${timestamp}.db`;
-    const tempBackupPath = path.join(backupsPath, `${backupFile}.tmp`);
-    const finalBackupPath = path.join(backupsPath, backupFile);
-
-    db.backup(tempBackupPath)
-      .then(() => {
-        fs.renameSync(tempBackupPath, finalBackupPath);
-        console.log('Database backup created:', finalBackupPath);
-
-        const backups = fs.readdirSync(backupsPath)
-          .filter(f => f.startsWith('chiyo-') && f.endsWith('.db'))
-          .sort((a, b) => fs.statSync(path.join(backupsPath, b)).mtime.getTime() - fs.statSync(path.join(backupsPath, a)).mtime.getTime());
-
-        if (backups.length > 5) {
-          backups.slice(5).forEach(f => fs.unlinkSync(path.join(backupsPath, f)));
-        }
-      })
-      .catch(err => console.error('Backup failed:', err));
-  } catch (err) {
-    console.error('Failed to initiate backup:', err);
-  }
+  // 4. Perform initial backup on startup
+  performBackup().catch(err => console.error('Startup backup failed:', err));
 
   console.log('Database initialized at:', dbPath);
+}
+
+/**
+ * Executes a database backup and manages the rolling snapshot limit (5)
+ */
+export async function performBackup() {
+  const userDataPath = app.getPath('userData');
+  const backupsPath = path.join(userDataPath, 'backups');
+  
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupFile = `chiyo-${timestamp}.db`;
+  const tempBackupPath = path.join(backupsPath, `${backupFile}.tmp`);
+  const finalBackupPath = path.join(backupsPath, backupFile);
+
+  try {
+    await db.backup(tempBackupPath);
+    if (fs.existsSync(tempBackupPath)) {
+      fs.renameSync(tempBackupPath, finalBackupPath);
+      
+      // Cleanup: Keep only the 5 most recent
+      const backups = fs.readdirSync(backupsPath)
+        .filter(f => f.startsWith('chiyo-') && f.endsWith('.db'))
+        .map(f => ({ name: f, time: fs.statSync(path.join(backupsPath, f)).mtime.getTime() }))
+        .sort((a, b) => b.time - a.time);
+
+      if (backups.length > 5) {
+        backups.slice(5).forEach(f => fs.unlinkSync(path.join(backupsPath, f.name)));
+      }
+      return { success: true, path: finalBackupPath, timestamp: new Date().toLocaleString() };
+    }
+    throw new Error('Backup file was not created');
+  } catch (err) {
+    if (fs.existsSync(tempBackupPath)) fs.unlinkSync(tempBackupPath);
+    console.error('Backup Engine Failure:', err);
+    throw err;
+  }
+}
+
+/**
+ * Retrieves statistics about current existing backups
+ */
+export function getBackupStats() {
+  const userDataPath = app.getPath('userData');
+  const backupsPath = path.join(userDataPath, 'backups');
+  
+  if (!fs.existsSync(backupsPath)) return { count: 0, lastBackup: null };
+
+  const backups = fs.readdirSync(backupsPath)
+    .filter(f => f.startsWith('chiyo-') && f.endsWith('.db'))
+    .map(f => ({ name: f, time: fs.statSync(path.join(backupsPath, f)).mtime.getTime() }))
+    .sort((a, b) => b.time - a.time);
+
+  return {
+    count: backups.length,
+    lastBackup: backups.length > 0 ? new Date(backups[0].time).toLocaleString() : null
+  };
 }
 
 function runMigrations() {

@@ -169,9 +169,10 @@ function App() {
       id: mangaToDelete.id,
       cover_path: mangaToDelete.cover_path
     })
-    fetchMangas()
+    await fetchMangas()
     setSelectedMangaId(null)
     setMangaToDelete(null)
+    setView('library')
   }
 
   const handleUpdateChapter = async (id: number, chapter: number) => {

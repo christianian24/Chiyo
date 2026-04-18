@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog, protocol, net, Menu, shell } from 
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { initDatabase, mangaQueries } from '../db/index'
+import { initDatabase, mangaQueries, performBackup, getBackupStats, closeDatabase } from '../db/index'
+import AdmZip from 'adm-zip'
 import { saveCoverImage, deleteCoverImage, getCoverPath } from '../storage/imageHandler'
 
 // --- DIAGNOSTICS [DETERMINISTIC] ---
@@ -278,3 +279,79 @@ ipcMain.handle('get-achievements', async () => {
 ipcMain.handle('add-achievement', async (_, achievement: any) => {
   return mangaQueries.addAchievement(achievement);
 })
+ipcMain.handle('get-backup-stats', async () => {
+  return getBackupStats();
+})
+
+ipcMain.handle('perform-manual-backup', async () => {
+  return withLock('global', async () => {
+    return performBackup();
+  });
+})
+
+ipcMain.handle('export-master-archive', async () => {
+  const result = await dialog.showSaveDialog({
+    title: 'Export Master Archive',
+    defaultPath: path.join(app.getPath('downloads'), `chiyo-backup-${new Date().toISOString().split('T')[0]}.zip`),
+    filters: [{ name: 'Chiyo Archive', extensions: ['zip'] }]
+  });
+
+  if (result.canceled || !result.filePath) return { success: false };
+
+  return withLock('global', async () => {
+    try {
+      const zip = new AdmZip();
+      const userDataPath = app.getPath('userData');
+      const dbPath = path.join(userDataPath, 'chiyo.db');
+      const coversPath = path.join(userDataPath, 'covers');
+
+      if (fs.existsSync(dbPath)) zip.addLocalFile(dbPath);
+      if (fs.existsSync(coversPath)) zip.addLocalFolder(coversPath, 'covers');
+
+      zip.writeZip(result.filePath);
+      return { success: true, path: result.filePath };
+    } catch (err) {
+      console.error('Export failed:', err);
+      return { success: false, error: String(err) };
+    }
+  });
+});
+
+ipcMain.handle('import-master-archive', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Select Master Archive for Restore',
+    filters: [{ name: 'Chiyo Archive', extensions: ['zip'] }],
+    properties: ['openFile']
+  });
+
+  if (result.canceled || !result.filePaths[0]) return { success: false };
+
+  return withLock('global', async () => {
+    try {
+      const zip = new AdmZip(result.filePaths[0]);
+      const zipEntries = zip.getEntries();
+      const hasDb = zipEntries.some(e => e.entryName === 'chiyo.db');
+
+      if (!hasDb) throw new Error('Invalid Archive: chiyo.db missing');
+
+      closeDatabase();
+
+      const userDataPath = app.getPath('userData');
+      const coversPath = path.join(userDataPath, 'covers');
+
+      if (fs.existsSync(coversPath)) {
+        fs.rmSync(coversPath, { recursive: true, force: true });
+      }
+
+      zip.extractAllTo(userDataPath, true);
+      
+      app.relaunch();
+      app.exit(0);
+      return { success: true };
+    } catch (err) {
+      console.error('Import failed:', err);
+      initDatabase(); 
+      return { success: false, error: String(err) };
+    }
+  });
+});
