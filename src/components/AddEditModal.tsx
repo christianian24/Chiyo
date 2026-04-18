@@ -34,7 +34,9 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
     format: initialData?.format || '',
     publishing_status: initialData?.publishing_status || '',
     temp_cover_path: '',
-    cover_path: initialData?.cover_path || ''
+    cover_path: initialData?.cover_path || '',
+    tags: initialData?.tags || '',
+    source_url: initialData?.source_url || ''
   });
 
   const [errors, setErrors] = useState<{title?: string}>({});
@@ -311,6 +313,43 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
                       </button>
                     )
                   })}
+                </div>
+              </div>
+
+              {/* SECTION: CONNECTIVITY */}
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                   <div className="h-[1px] flex-1 bg-white/5" />
+                   <span className="text-[9px] font-black uppercase tracking-[0.3em] text-accent opacity-60">Connectivity</span>
+                   <div className="h-[1px] flex-1 bg-white/5" />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                       <Tag size={10} /> Custom Tags
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Peak Fiction, Must Read, Masterpiece..." 
+                      className="input h-11 bg-white/[0.02] border-white/5 text-xs font-bold focus:border-accent/40 shadow-inner"
+                      value={formData.tags}
+                      onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
+                       <Zap size={10} /> Source URL
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Link to official site or reader..." 
+                      className="input h-11 bg-white/[0.02] border-white/5 text-xs font-bold focus:border-accent/40 shadow-inner"
+                      value={formData.source_url}
+                      onChange={e => setFormData(prev => ({ ...prev, source_url: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </div>
 

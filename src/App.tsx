@@ -9,6 +9,7 @@ import SettingsModal from './components/SettingsModal'
 import SplashScreen from './components/SplashScreen'
 import ConfirmModal from './components/ConfirmModal'
 import CustomSelect from './components/CustomSelect'
+import Profile from './pages/Profile'
 
 const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Slice of Life", "Sci-Fi", "Mystery"]
 const FORMATS = ["Manga", "Manhwa", "Manhua", "Light Novel", "One-shot"]
@@ -35,10 +36,11 @@ function App() {
   const [selectedFormat, setSelectedFormat] = useState<string>('Any')
   const [selectedPubStatus, setSelectedPubStatus] = useState<string>('Any')
   const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<string>('latest')
+  const [view, setView] = useState<'library' | 'detail' | 'profile'>('library')
   const [showSplash, setShowSplash] = useState(true)
   const [isLogoLoaded, setIsLogoLoaded] = useState(false)
   const [mangaToDelete, setMangaToDelete] = useState<Manga | null>(null)
-  const [sortBy, setSortBy] = useState<string>('latest')
 
   const mainRef = useRef<HTMLDivElement>(null)
 
@@ -88,6 +90,21 @@ function App() {
 
     init();
   }, [])
+
+  // Navigation Logic
+  const navigateToDetail = (id: number) => {
+    setSelectedMangaId(id)
+    setView('detail')
+  }
+
+  const navigateToLibrary = () => {
+    setSelectedMangaId(null)
+    setView('library')
+  }
+
+  const navigateToProfile = () => {
+    setView('profile')
+  }
 
   const handleAddManga = async (mangaData: any) => {
     if (!isElectron) return
@@ -184,9 +201,9 @@ function App() {
 
               {/* Tier 1: Logo & Tabs */}
               <div className="flex items-center justify-between h-12">
-                <div
+                <div 
                   className="flex items-center cursor-pointer group"
-                  onClick={() => setSelectedMangaId(null)}
+                  onClick={navigateToProfile}
                 >
                   <h1 className="text-3xl font-syncopate font-bold tracking-tighter uppercase italic text-white flex items-baseline gap-0 group drop-shadow-2xl">
                     <span className="group-hover:text-accent transition-all duration-700 ease-out">Chi</span>
@@ -195,7 +212,7 @@ function App() {
                   </h1>
                 </div>
 
-                {!selectedMangaId && (
+                {view === 'library' && (
                   <div className="flex items-center gap-8">
                     {['all', 'reading', 'completed'].map((status) => (
                       <button
@@ -222,12 +239,12 @@ function App() {
               </div>
 
               {/* Separator Line */}
-              {!selectedMangaId && (
+              {view === 'library' && (
                 <div className="h-[1px] w-full bg-white/[0.03]" />
               )}
 
               {/* Tier 2: Search & Actions */}
-              {!selectedMangaId && (
+              {view === 'library' && (
                 <div className="flex items-center gap-3">
                   {/* Genres Picker */}
                   <CustomSelect
@@ -301,21 +318,34 @@ function App() {
               ref={mainRef}
               className="flex-1 overflow-auto p-10 scrollbar-hide relative"
             >
-              <AnimatePresence mode="popLayout">
-                {selectedManga ? (
+              <AnimatePresence mode="popLayout" initial={false}>
+                {view === 'detail' && selectedManga ? (
                   <motion.div
                     key="detail"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 1.7, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   >
                     <Detail
                       manga={selectedManga}
-                      onBack={() => setSelectedMangaId(null)}
+                      onBack={navigateToLibrary}
                       onDelete={handleDeleteManga}
                       onUpdateChapter={handleUpdateChapter}
                       onEdit={(m) => setEditingManga(m)}
+                    />
+                  </motion.div>
+                ) : view === 'profile' ? (
+                  <motion.div
+                    key="profile"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <Profile 
+                      mangas={mangas} 
+                      onBack={navigateToLibrary} 
                     />
                   </motion.div>
                 ) : (
@@ -324,12 +354,12 @@ function App() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
                   >
                     <Library
                       allMangas={mangas}
                       mangas={filteredMangas}
-                      onSelect={setSelectedMangaId}
+                      onSelect={navigateToDetail}
                       loading={loading}
                       onQuickUpdate={handleUpdateChapter}
                       isFiltering={isFiltering}

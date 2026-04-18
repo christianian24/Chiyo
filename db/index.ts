@@ -69,7 +69,9 @@ export function initDatabase() {
       date_started TEXT,
       date_finished TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      tags TEXT DEFAULT "",
+      source_url TEXT DEFAULT ""
     );
   `);
 
@@ -96,6 +98,14 @@ function runMigrations() {
     db.exec("ALTER TABLE manga ADD COLUMN updated_at TEXT DEFAULT '2000-01-01 00:00:00'");
     console.log('Migration: Added updated_at column');
   }
+  if (!columns.includes('tags')) {
+    db.exec('ALTER TABLE manga ADD COLUMN tags TEXT DEFAULT ""');
+    console.log('Migration: Added tags column');
+  }
+  if (!columns.includes('source_url')) {
+    db.exec('ALTER TABLE manga ADD COLUMN source_url TEXT DEFAULT ""');
+    console.log('Migration: Added source_url column');
+  }
 }
 
 // Queries
@@ -108,8 +118,8 @@ export const mangaQueries = {
   },
   add: (manga: any) => {
     const stmt = db.prepare(`
-      INSERT INTO manga (title, cover_path, status, genres, format, publishing_status, current_chapter, total_chapters, date_started, date_finished)
-      VALUES (@title, @cover_path, @status, @genres, @format, @publishing_status, @current_chapter, @total_chapters, @date_started, @date_finished)
+      INSERT INTO manga (title, cover_path, status, genres, format, publishing_status, current_chapter, total_chapters, date_started, date_finished, tags, source_url)
+      VALUES (@title, @cover_path, @status, @genres, @format, @publishing_status, @current_chapter, @total_chapters, @date_started, @date_finished, @tags, @source_url)
     `);
     return stmt.run(manga);
   },
@@ -120,6 +130,7 @@ export const mangaQueries = {
           genres = @genres, format = @format, publishing_status = @publishing_status,
           current_chapter = @current_chapter, total_chapters = @total_chapters, 
           date_started = @date_started, date_finished = @date_finished,
+          tags = @tags, source_url = @source_url,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
     `);

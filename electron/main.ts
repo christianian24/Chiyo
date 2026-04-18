@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, protocol, net, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, protocol, net, Menu, shell } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -224,4 +224,8 @@ ipcMain.handle('pick-cover', async () => {
   })
   if (result.canceled) return null
   return result.filePaths[0]
+})
+
+ipcMain.handle('open-url', async (_, url: string) => {
+  if (url) shell.openExternal(url);
 })

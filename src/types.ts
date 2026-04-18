@@ -13,6 +13,8 @@ export interface Manga {
   date_finished: string | null;
   created_at: string;
   updated_at: string;
+  tags: string; // Comma-separated custom tags
+  source_url: string; // External reading link
 }
 
 export type MangaFormData = Omit<Manga, 'id' | 'created_at' | 'cover_url'> & {

@@ -191,7 +191,6 @@ export default function Detail({ manga, onBack, onDelete, onEdit, onUpdateChapte
                   </div>
                 </div>
                 <div className="pt-4 border-t border-white/5 space-y-4">
-                  <p className="text-[8px] font-black text-text-muted/20 uppercase tracking-widest leading-none">Category Overview</p>
                   <div className="flex flex-wrap gap-2">
                     {manga.genres ? manga.genres.split(',').map(genre => (
                       <span key={genre} className="px-3 py-1 bg-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-text-muted hover:text-white transition-colors border border-white/5">
@@ -202,6 +201,20 @@ export default function Detail({ manga, onBack, onDelete, onEdit, onUpdateChapte
                     )}
                   </div>
                 </div>
+
+                {/* Custom User Tags */}
+                {manga.tags && (
+                  <div className="pt-4 border-t border-white/5 space-y-4">
+                    <p className="text-[8px] font-black text-text-muted/20 uppercase tracking-widest leading-none italic">Personal Identifiers</p>
+                    <div className="flex flex-wrap gap-2">
+                      {manga.tags.split(',').map(tag => (
+                        <span key={tag} className="px-3 py-1 bg-white/5 rounded-lg text-[9px] font-black uppercase tracking-widest text-white/50 border border-white/10 shadow-sm">
+                          #{tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -232,6 +245,18 @@ export default function Detail({ manga, onBack, onDelete, onEdit, onUpdateChapte
 
           {/* ACTIONS: Operational Control */}
           <motion.div variants={item} className="flex gap-4 pt-8">
+            {manga.source_url && (
+              <button
+                onClick={() => window.electron.invoke('open-url', manga.source_url)}
+                className="btn btn-primary h-16 flex-[2] rounded-[1.25rem] shadow-2xl shadow-accent/20 group relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                <span className="relative flex items-center justify-center gap-3">
+                  <Zap size={18} fill="currentColor" />
+                  <span className="text-[11px] uppercase tracking-[0.35em] font-black">Read Online</span>
+                </span>
+              </button>
+            )}
             <button
               onClick={() => onEdit(manga)}
               className="flex-[4] h-16 rounded-[1.25rem] bg-white/[0.03] border border-white/5 flex items-center justify-center gap-4 hover:bg-white/5 transition-all group overflow-hidden relative shadow-2xl"
