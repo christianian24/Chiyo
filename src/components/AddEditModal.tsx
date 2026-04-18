@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { X, Upload, Image as ImageIcon, Calendar, BookOpen, Hash, Tag, Layers, Info, CheckCircle2, Clock, XCircle, Zap, ChevronDown, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import CustomSelect from './CustomSelect'
 
 interface AddEditModalProps {
   onClose: () => void;
@@ -82,75 +83,6 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
   const currentCover = formData.temp_cover_path 
     ? `chiyo-asset://${formData.temp_cover_path}` 
     : (formData.cover_path ? `chiyo-asset://${formData.cover_path}` : null);
-
-  // Custom Selector Component
-  const CustomSelect = ({ label, value, options, onChange, icon: Icon }: any) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-          setIsOpen(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const selectedOption = options.find((o: any) => (typeof o === 'string' ? o === value : o.value === value));
-    const displayValue = typeof selectedOption === 'string' ? selectedOption : selectedOption?.label || value || 'Select...';
-
-    return (
-      <div className="space-y-2 flex-1" ref={containerRef}>
-        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted ml-1 flex items-center gap-2">
-          {Icon && <Icon size={10} />} {label}
-        </label>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsOpen(!isOpen)}
-            className="w-full h-11 bg-white/[0.02] border border-white/5 rounded-xl px-4 flex items-center justify-between hover:bg-white/5 transition-all text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none"
-          >
-            <span className="truncate italic uppercase">{displayValue}</span>
-            <ChevronDown size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-180 text-accent' : 'opacity-30'}`} />
-          </button>
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute z-50 left-0 right-0 mt-2 py-2 bg-surface border border-white/10 rounded-xl shadow-2xl backdrop-blur-xl"
-              >
-                {options.map((opt: any) => {
-                  const val = typeof opt === 'string' ? opt : opt.value;
-                  const lbl = typeof opt === 'string' ? opt : opt.label;
-                  const isSelected = val === value;
-                  return (
-                    <button
-                      key={val}
-                      type="button"
-                      onClick={() => {
-                        onChange(val);
-                        setIsOpen(false);
-                      }}
-                      className={`w-full px-4 py-2.5 text-[10px] font-bold text-left uppercase tracking-widest transition-colors flex items-center justify-between ${
-                        isSelected ? 'text-accent bg-accent/5' : 'text-text-muted hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      {lbl}
-                      {isSelected && <Check size={12} />}
-                    </button>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, BookOpen, Settings, Filter } from 'lucide-react'
+import { Plus, Search, BookOpen, Settings, Filter, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Manga } from './types'
 import Library from './pages/Library'
@@ -8,6 +8,7 @@ import AddEditModal from './components/AddEditModal'
 import SettingsModal from './components/SettingsModal'
 import SplashScreen from './components/SplashScreen'
 import ConfirmModal from './components/ConfirmModal'
+import CustomSelect from './components/CustomSelect'
 
 const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Slice of Life", "Sci-Fi", "Mystery"]
 const FORMATS = ["Manga", "Manhwa", "Manhua", "Light Novel", "One-shot"]
@@ -140,26 +141,29 @@ function App() {
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
             
             {/* Header */}
-            <header className="pt-6 pb-2 px-10 bg-background z-20 shrink-0 flex flex-col gap-4">
+            <header className="pt-6 pb-2 px-10 bg-background z-20 shrink-0 flex flex-col gap-4 relative group/header">
+              {/* Decorative Background Logo Container */}
+              <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-b-[3rem]">
+                <div className="absolute -top-28 -right-10 w-96 h-96 opacity-[0.1] grayscale transition-opacity duration-1000 group-hover/header:opacity-[0.15]">
+                  <img 
+                    src="logo.jpg" 
+                    className="w-full h-full object-cover rounded-full" 
+                    onError={(e) => e.currentTarget.style.display = 'none'}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-l from-transparent via-background/50 to-background" />
+                </div>
+              </div>
+
               {/* Tier 1: Logo & Tabs */}
               <div className="flex items-center justify-between h-12">
                 <div 
-                  className="flex items-center gap-3 cursor-pointer group"
+                  className="flex items-center cursor-pointer group"
                   onClick={() => setSelectedMangaId(null)}
                 >
-                  <div className="relative w-8 h-8">
-                    <img 
-                      src="logo.jpg" 
-                      alt="Chiyo Logo" 
-                      className="w-full h-full object-cover rounded-md"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement!.innerHTML = '<div class="w-8 h-8 bg-accent rounded-md flex items-center justify-center text-background font-black text-sm">千</div>';
-                      }}
-                    />
-                  </div>
-                  <h1 className="text-lg font-black tracking-tighter uppercase italic text-white flex items-center gap-2">
-                    <span className="bg-white/10 px-1.5 py-0.5 rounded border border-white/5 not-italic text-[10px] tracking-widest">CHIYO</span>
+                  <h1 className="text-3xl font-syncopate font-bold tracking-tighter uppercase italic text-white flex items-baseline gap-0 group drop-shadow-2xl">
+                    <span className="group-hover:text-accent transition-all duration-700 ease-out">Chi</span>
+                    <span className="text-accent group-hover:text-white transition-all duration-700 ease-out">yo</span>
+                    <span className="w-2 h-2 rounded-full bg-accent ml-1.5 mb-1.5 block scale-0 group-hover:scale-100 transition-all duration-500 shadow-lg shadow-accent/40" />
                   </h1>
                 </div>
 
@@ -190,47 +194,40 @@ function App() {
                 <div className="w-[180px]" /> {/* Balancing spacer */}
               </div>
 
+              {/* Separator Line */}
+              {!selectedMangaId && (
+                <div className="h-[1px] w-full bg-white/[0.03]" />
+              )}
+              
               {/* Tier 2: Search & Actions */}
               {!selectedMangaId && (
                 <div className="flex items-center gap-3">
-                  {/* Genres Filter */}
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-3 opacity-50">Genre</span>
-                    <select 
-                      className="bg-surface/50 border border-white/5 rounded-xl px-4 h-10 text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none cursor-pointer hover:bg-white/5 transition-all w-[120px] appearance-none"
-                      value={selectedGenre}
-                      onChange={(e) => setSelectedGenre(e.target.value)}
-                    >
-                      <option value="Any">Any</option>
-                      {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                  </div>
+                  {/* Genres Picker */}
+                  <CustomSelect 
+                    value={selectedGenre}
+                    options={['Any', ...GENRES]}
+                    onChange={setSelectedGenre}
+                    placeholder="Genre"
+                    className="w-[130px]"
+                  />
 
-                  {/* Format Filter */}
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-3 opacity-50">Format</span>
-                    <select 
-                      className="bg-surface/50 border border-white/5 rounded-xl px-4 h-10 text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none cursor-pointer hover:bg-white/5 transition-all w-[110px] appearance-none"
-                      value={selectedFormat}
-                      onChange={(e) => setSelectedFormat(e.target.value)}
-                    >
-                      <option value="Any">Any</option>
-                      {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
-                    </select>
-                  </div>
+                  {/* Format Picker */}
+                  <CustomSelect 
+                    value={selectedFormat}
+                    options={['Any', ...FORMATS]}
+                    onChange={setSelectedFormat}
+                    placeholder="Format"
+                    className="w-[120px]"
+                  />
 
-                  {/* Status Filter */}
-                  <div className="flex flex-col gap-1 shrink-0">
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted ml-3 opacity-50">Status</span>
-                    <select 
-                      className="bg-surface/50 border border-white/5 rounded-xl px-4 h-10 text-[11px] font-bold text-white/90 focus:border-accent/40 outline-none cursor-pointer hover:bg-white/5 transition-all w-[110px] appearance-none"
-                      value={selectedPubStatus}
-                      onChange={(e) => setSelectedPubStatus(e.target.value)}
-                    >
-                      <option value="Any">Any</option>
-                      {PUB_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
+                  {/* Status Picker */}
+                  <CustomSelect 
+                    value={selectedPubStatus}
+                    options={['Any', ...PUB_STATUSES]}
+                    onChange={setSelectedPubStatus}
+                    placeholder="Status"
+                    className="w-[120px]"
+                  />
 
                   <div className="relative flex-1 group self-end mb-0.5">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
