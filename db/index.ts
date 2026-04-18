@@ -68,7 +68,8 @@ export function initDatabase() {
       total_chapters INTEGER,
       date_started TEXT,
       date_finished TEXT,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
@@ -91,12 +92,16 @@ function runMigrations() {
     db.exec('ALTER TABLE manga ADD COLUMN publishing_status TEXT DEFAULT ""');
     console.log('Migration: Added publishing_status column');
   }
+  if (!columns.includes('updated_at')) {
+    db.exec("ALTER TABLE manga ADD COLUMN updated_at TEXT DEFAULT '2000-01-01 00:00:00'");
+    console.log('Migration: Added updated_at column');
+  }
 }
 
 // Queries
 export const mangaQueries = {
   getAll: () => {
-    return db.prepare('SELECT * FROM manga ORDER BY created_at DESC').all();
+    return db.prepare('SELECT * FROM manga ORDER BY updated_at DESC').all();
   },
   getById: (id: number) => {
     return db.prepare('SELECT * FROM manga WHERE id = ?').get(id);
@@ -114,7 +119,8 @@ export const mangaQueries = {
       SET title = @title, cover_path = @cover_path, status = @status, 
           genres = @genres, format = @format, publishing_status = @publishing_status,
           current_chapter = @current_chapter, total_chapters = @total_chapters, 
-          date_started = @date_started, date_finished = @date_finished
+          date_started = @date_started, date_finished = @date_finished,
+          updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
     `);
     return stmt.run(manga);
@@ -123,6 +129,6 @@ export const mangaQueries = {
     return db.prepare('DELETE FROM manga WHERE id = ?').run(id);
   },
   updateChapter: (id: number, chapter: number) => {
-    return db.prepare('UPDATE manga SET current_chapter = ? WHERE id = ?').run(chapter, id);
+    return db.prepare('UPDATE manga SET current_chapter = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(chapter, id);
   }
 };

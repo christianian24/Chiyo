@@ -12,6 +12,7 @@ export interface Manga {
   date_started: string | null;
   date_finished: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export type MangaFormData = Omit<Manga, 'id' | 'created_at' | 'cover_url'> & {

@@ -39,15 +39,15 @@
     display: none;
   }
 
-  /* Custom minimal scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
+  .custom-scrollbar::-webkit-scrollbar {
+    height: 4px;
+    display: block;
   }
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-white/[0.02] rounded-full;
   }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-accent/40 transition-colors;
   }
 
   /* Style native select dropdown options for dark theme */

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Plus, Search, BookOpen, Settings, Filter, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Manga } from './types'
@@ -38,6 +38,21 @@ function App() {
   const [showSplash, setShowSplash] = useState(true)
   const [isLogoLoaded, setIsLogoLoaded] = useState(false)
   const [mangaToDelete, setMangaToDelete] = useState<Manga | null>(null)
+  const [sortBy, setSortBy] = useState<string>('latest')
+
+  const mainRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0
+    }
+  }, [selectedMangaId])
+
+  const SORT_OPTIONS = [
+    { value: 'latest', label: 'Last Read' },
+    { value: 'title', label: 'Alphabetical' },
+    { value: 'progress', label: 'Progression' }
+  ]
 
   const isElectron = !!window.electron
 
@@ -95,9 +110,9 @@ function App() {
 
   const processDelete = async () => {
     if (!isElectron || !mangaToDelete) return
-    await window.electron.invoke('delete-manga', { 
-      id: mangaToDelete.id, 
-      cover_path: mangaToDelete.cover_path 
+    await window.electron.invoke('delete-manga', {
+      id: mangaToDelete.id,
+      cover_path: mangaToDelete.cover_path
     })
     fetchMangas()
     setSelectedMangaId(null)
@@ -110,14 +125,27 @@ function App() {
     fetchMangas()
   }
 
-  const filteredMangas = mangas.filter((m: Manga) => {
-    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || m.status === statusFilter
-    const matchesGenre = selectedGenre === 'Any' || (m.genres && m.genres.split(',').includes(selectedGenre))
-    const matchesFormat = selectedFormat === 'Any' || m.format === selectedFormat
-    const matchesPubStatus = selectedPubStatus === 'Any' || m.publishing_status === selectedPubStatus
-    return matchesSearch && matchesStatus && matchesGenre && matchesFormat && matchesPubStatus
-  })
+  const isFiltering = searchQuery !== '' || statusFilter !== 'all' || selectedGenre !== 'Any' || selectedFormat !== 'Any' || selectedPubStatus !== 'Any'
+
+  const filteredMangas = mangas
+    .filter((m: Manga) => {
+      const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase())
+      const matchesStatus = statusFilter === 'all' || m.status === statusFilter
+      const matchesGenre = selectedGenre === 'Any' || (m.genres && m.genres.split(',').includes(selectedGenre))
+      const matchesFormat = selectedFormat === 'Any' || m.format === selectedFormat
+      const matchesPubStatus = selectedPubStatus === 'Any' || m.publishing_status === selectedPubStatus
+      return matchesSearch && matchesStatus && matchesGenre && matchesFormat && matchesPubStatus
+    })
+    .sort((a, b) => {
+      if (sortBy === 'title') return a.title.localeCompare(b.title)
+      if (sortBy === 'progress') {
+        const progA = a.current_chapter / (a.total_chapters || 1)
+        const progB = b.current_chapter / (b.total_chapters || 1)
+        return progB - progA
+      }
+      // latest (default)
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    })
 
   const selectedManga = mangas.find((m: Manga) => m.id === selectedMangaId)
 
@@ -125,12 +153,12 @@ function App() {
     <div className="h-screen bg-background text-text select-none overflow-hidden relative">
       <AnimatePresence mode="wait">
         {showSplash ? (
-          <SplashScreen 
-            key="splash" 
-            onLoaded={() => setIsLogoLoaded(true)} 
+          <SplashScreen
+            key="splash"
+            onLoaded={() => setIsLogoLoaded(true)}
           />
         ) : (
-          <motion.div 
+          <motion.div
             key="app-content"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -139,15 +167,15 @@ function App() {
           >
             {/* Background Glow */}
             <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/[0.02] blur-[120px] rounded-full pointer-events-none" />
-            
+
             {/* Header */}
             <header className="pt-6 pb-2 px-10 bg-background z-20 shrink-0 flex flex-col gap-4 relative group/header">
               {/* Decorative Background Logo Container */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-b-[3rem]">
                 <div className="absolute -top-28 -right-10 w-96 h-96 opacity-[0.1] grayscale transition-opacity duration-1000 group-hover/header:opacity-[0.15]">
-                  <img 
-                    src="logo.jpg" 
-                    className="w-full h-full object-cover rounded-full" 
+                  <img
+                    src="logo.jpg"
+                    className="w-full h-full object-cover rounded-full"
                     onError={(e) => e.currentTarget.style.display = 'none'}
                   />
                   <div className="absolute inset-0 bg-gradient-to-l from-transparent via-background/50 to-background" />
@@ -156,7 +184,7 @@ function App() {
 
               {/* Tier 1: Logo & Tabs */}
               <div className="flex items-center justify-between h-12">
-                <div 
+                <div
                   className="flex items-center cursor-pointer group"
                   onClick={() => setSelectedMangaId(null)}
                 >
@@ -173,15 +201,14 @@ function App() {
                       <button
                         key={status}
                         onClick={() => setStatusFilter(status)}
-                        className={`relative py-2 text-xs font-bold uppercase tracking-[0.2em] transition-all ${
-                          statusFilter === status 
-                          ? 'text-accent' 
+                        className={`relative py-2 text-xs font-bold uppercase tracking-[0.2em] transition-all ${statusFilter === status
+                          ? 'text-accent'
                           : 'text-text-muted hover:text-white'
-                        }`}
+                          }`}
                       >
                         {status}
                         {statusFilter === status && (
-                          <motion.div 
+                          <motion.div
                             layoutId="activeTab"
                             className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent rounded-full"
                           />
@@ -190,7 +217,7 @@ function App() {
                     ))}
                   </div>
                 )}
-                
+
                 <div className="w-[180px]" /> {/* Balancing spacer */}
               </div>
 
@@ -198,12 +225,12 @@ function App() {
               {!selectedMangaId && (
                 <div className="h-[1px] w-full bg-white/[0.03]" />
               )}
-              
+
               {/* Tier 2: Search & Actions */}
               {!selectedMangaId && (
                 <div className="flex items-center gap-3">
                   {/* Genres Picker */}
-                  <CustomSelect 
+                  <CustomSelect
                     value={selectedGenre}
                     options={['Any', ...GENRES]}
                     onChange={setSelectedGenre}
@@ -212,7 +239,7 @@ function App() {
                   />
 
                   {/* Format Picker */}
-                  <CustomSelect 
+                  <CustomSelect
                     value={selectedFormat}
                     options={['Any', ...FORMATS]}
                     onChange={setSelectedFormat}
@@ -221,7 +248,7 @@ function App() {
                   />
 
                   {/* Status Picker */}
-                  <CustomSelect 
+                  <CustomSelect
                     value={selectedPubStatus}
                     options={['Any', ...PUB_STATUSES]}
                     onChange={setSelectedPubStatus}
@@ -229,25 +256,36 @@ function App() {
                     className="w-[120px]"
                   />
 
+                  <div className="w-[1px] h-6 bg-white/5 mx-2" />
+
+                  {/* Sort Picker */}
+                  <CustomSelect
+                    value={sortBy}
+                    options={SORT_OPTIONS}
+                    onChange={setSortBy}
+                    placeholder="Sort"
+                    className="w-[140px]"
+                  />
+
                   <div className="relative flex-1 group self-end mb-0.5">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-accent transition-colors" />
-                    <input 
-                      type="text" 
-                      placeholder="Search series..." 
+                    <input
+                      type="text"
+                      placeholder="Search series..."
                       className="input pl-11 h-10 bg-surface/50 border-white/5 focus:border-accent/40 text-sm"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={() => setIsSettingsOpen(true)}
                     className="w-10 h-10 flex items-center justify-center bg-surface/50 rounded-xl border border-white/5 hover:bg-white/5 transition-colors text-text-muted hover:text-white self-end mb-0.5"
                   >
                     <Settings size={18} />
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => setIsAddModalOpen(true)}
                     className="btn btn-primary h-10 flex items-center gap-2 px-6 self-end mb-0.5"
                   >
@@ -259,18 +297,21 @@ function App() {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-auto p-10 scrollbar-hide relative">
-              <AnimatePresence mode="wait">
+            <main
+              ref={mainRef}
+              className="flex-1 overflow-auto p-10 scrollbar-hide relative"
+            >
+              <AnimatePresence mode="popLayout">
                 {selectedManga ? (
                   <motion.div
                     key="detail"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 1.7, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <Detail 
-                      manga={selectedManga} 
+                    <Detail
+                      manga={selectedManga}
                       onBack={() => setSelectedMangaId(null)}
                       onDelete={handleDeleteManga}
                       onUpdateChapter={handleUpdateChapter}
@@ -283,13 +324,15 @@ function App() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
+                    transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <Library 
-                      mangas={filteredMangas} 
+                    <Library
+                      allMangas={mangas}
+                      mangas={filteredMangas}
                       onSelect={setSelectedMangaId}
                       loading={loading}
                       onQuickUpdate={handleUpdateChapter}
+                      isFiltering={isFiltering}
                     />
                   </motion.div>
                 )}
@@ -299,11 +342,11 @@ function App() {
             {/* Modals */}
             <AnimatePresence>
               {(isAddModalOpen || editingManga) && (
-                <AddEditModal 
+                <AddEditModal
                   onClose={() => {
                     setIsAddModalOpen(false)
                     setEditingManga(null)
-                  }} 
+                  }}
                   onSubmit={editingManga ? handleUpdateManga : handleAddManga}
                   initialData={editingManga}
                   isElectron={isElectron}
@@ -313,7 +356,7 @@ function App() {
                 <SettingsModal onClose={() => setIsSettingsOpen(false)} />
               )}
               {mangaToDelete && (
-                <ConfirmModal 
+                <ConfirmModal
                   title="Permanently Purge?"
                   message={`Are you absolutely sure you want to remove "${mangaToDelete.title}" from your collection? This action cannot be undone.`}
                   confirmLabel="Purge Series"

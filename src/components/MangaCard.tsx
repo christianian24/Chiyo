@@ -28,7 +28,7 @@ export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardPr
   };
 
   return (
-    <motion.div 
+    <motion.div
       layout
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -50,7 +50,7 @@ export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardPr
           <span className="text-[10px] font-black uppercase tracking-widest text-center px-4">Artwork Missing</span>
         </div>
       )}
-      
+
       {/* Premium Overlay (Matches Live Preview) */}
       <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent flex flex-col justify-end p-4">
         <div className="space-y-1.5">
@@ -59,7 +59,7 @@ export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardPr
             <StatusIcon size={9} className={status.color} />
             <span className="text-[8px] font-black uppercase tracking-widest text-white/90">{status.label}</span>
           </div>
-          
+
           <h3 className="text-sm font-black text-white leading-tight line-clamp-2 italic uppercase tracking-tight group-hover:text-accent transition-colors" title={manga.title}>
             {manga.title}
           </h3>
@@ -70,17 +70,17 @@ export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardPr
 
           {/* Integrated Progress Bar */}
           <div className="h-0.5 w-full bg-white/10 rounded-full overflow-hidden mt-1">
-             <div 
-               className="h-full bg-accent transition-all duration-700 ease-out" 
-               style={{ width: `${Math.min((manga.current_chapter / (manga.total_chapters || 1)) * 100, 100)}%` }} 
-             />
+            <div
+              className="h-full bg-accent transition-all duration-700 ease-out"
+              style={{ width: `${Math.min((manga.current_chapter / (manga.total_chapters || 1)) * 100, 100)}%` }}
+            />
           </div>
         </div>
       </div>
 
       {/* Quick Add Button Overlay */}
       {onQuickUpdate && (
-        <button 
+        <button
           onClick={handleQuickAdd}
           className="absolute top-3 right-3 w-8 h-8 rounded-full bg-accent text-background flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg shadow-accent/20 z-20"
         >
