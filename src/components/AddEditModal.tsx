@@ -43,7 +43,7 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toggleGenre = (genre: string) => {
-    const currentGenres = formData.genres ? formData.genres.split(',') : [];
+    const currentGenres = formData.genres ? formData.genres.split(',').filter(Boolean) : [];
     if (currentGenres.includes(genre)) {
       setFormData(prev => ({ ...prev, genres: currentGenres.filter((g: string) => g !== genre).join(',') }));
     } else {
@@ -75,9 +75,17 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
 
     try {
       setIsSubmitting(true);
-      await onSubmit(initialData?.id ? { ...formData, id: initialData.id } : formData);
+      // Clean data before submission
+      const submissionData = {
+        ...formData,
+        total_chapters: formData.total_chapters === '' ? null : parseInt(formData.total_chapters as string),
+        genres: formData.genres.split(',').filter(Boolean).join(','), // Remove any empty parts
+      };
+      await onSubmit(initialData?.id ? { ...submissionData, id: initialData.id } : submissionData);
+      setIsSubmitting(false); // Reset on success in case modal doesn't unmount (unlikely here)
     } catch (error) {
       console.error('Submission failed:', error);
+      alert('Failed to save manga. Please check your connection to the local database.');
       setIsSubmitting(false);
     }
   };

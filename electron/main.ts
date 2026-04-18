@@ -121,11 +121,15 @@ app.on('activate', () => {
 // --- Concurrency & Maintenance Logic ---
 
 // Simple Async Mutex for per-manga operations
-const locks = new Map<number | string, Promise<void>>();
+const locks = new Map<number | string, Promise<any>>();
 async function withLock(id: number | string, op: () => Promise<any>) {
   while (locks.has(id)) await locks.get(id);
   const promise = (async () => {
-    try { await op(); } finally { locks.delete(id); }
+    try { 
+      return await op(); 
+    } finally { 
+      locks.delete(id); 
+    }
   })();
   locks.set(id, promise);
   return promise;
@@ -140,8 +144,14 @@ async function cleanupOrphanedCovers() {
     if (!fs.existsSync(coversPath)) return;
 
     const files = fs.readdirSync(coversPath).filter(f => !f.endsWith('.tmp'));
-    const mangas = mangaQueries.getAll();
-    const referencedFiles = new Set(mangas.map((m: any) => m.cover_path).filter(Boolean));
+    const lastResult = mangaQueries.getAll();
+    const referencedFiles = new Set(lastResult.map((m: any) => m.cover_path).filter(Boolean));
+    
+    // Protect the profile avatar
+    const avatar = mangaQueries.getSetting('avatar_path') as { value: string } | undefined;
+    if (avatar?.value) {
+      referencedFiles.add(avatar.value);
+    }
 
     let deletedCount = 0;
     for (const file of files) {
@@ -220,6 +230,12 @@ ipcMain.handle('update-chapter', async (_, { id, chapter }) => {
   });
 })
 
+ipcMain.handle('toggle-featured', async (_, { id, isFeatured }) => {
+  return withLock('global', async () => {
+    return mangaQueries.toggleFeatured(id, isFeatured);
+  });
+})
+
 ipcMain.handle('pick-cover', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
@@ -236,4 +252,29 @@ ipcMain.handle('open-url', async (_, url: string) => {
 ipcMain.handle('get-installation-date', async () => {
   const result = mangaQueries.getSetting('installation_date') as { value: string } | undefined;
   return result ? result.value : null;
+})
+
+ipcMain.handle('get-setting', async (_, key: string) => {
+  const result = mangaQueries.getSetting(key) as { value: string } | undefined;
+  return result ? result.value : null;
+})
+
+ipcMain.handle('set-setting', async (_, { key, value }) => {
+  return mangaQueries.setSetting(key, value);
+})
+
+ipcMain.handle('save-avatar', async (_, tempPath: string) => {
+  return withLock('profile', async () => {
+    const fileName = await saveCoverImage(tempPath);
+    await mangaQueries.setSetting('avatar_path', fileName);
+    return fileName;
+  });
+})
+
+ipcMain.handle('get-achievements', async () => {
+  return mangaQueries.getAchievements();
+})
+
+ipcMain.handle('add-achievement', async (_, achievement: any) => {
+  return mangaQueries.addAchievement(achievement);
 })

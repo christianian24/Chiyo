@@ -8,6 +8,7 @@ interface DetailProps {
   onDelete: (id: number, cover_path: string) => void;
   onEdit: (manga: Manga) => void;
   onUpdateChapter: (id: number, chapter: number) => void;
+  onToggleFeatured: (id: number, isFeatured: boolean) => void;
 }
 
 const statusConfig = {

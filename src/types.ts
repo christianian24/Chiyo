@@ -15,6 +15,7 @@ export interface Manga {
   updated_at: string;
   tags: string; // Comma-separated custom tags
   source_url: string; // External reading link
+  is_featured: number; // 0 or 1
 }
 
 export type MangaFormData = Omit<Manga, 'id' | 'created_at' | 'cover_url'> & {

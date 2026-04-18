@@ -8,10 +8,41 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   const [status, setStatus] = useState<any>(null);
+  const [username, setUsername] = useState('Chiyo Voyager');
+  const [avatarPath, setAvatarPath] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
 
   useEffect(() => {
     window.electron.invoke('get-maintenance-status').then(setStatus);
+    window.electron.invoke('get-setting', 'username').then(name => {
+      if (name) {
+        setUsername(name);
+        setTempName(name);
+      }
+    });
+    window.electron.invoke('get-setting', 'avatar_path').then(path => {
+      if (path) setAvatarPath(path);
+    });
   }, []);
+
+  const handleSaveName = async () => {
+    if (tempName.trim()) {
+      await window.electron.invoke('set-setting', { key: 'username', value: tempName.trim() });
+      setUsername(tempName.trim());
+      setIsEditingName(false);
+    }
+  };
+
+  const handleChangeAvatar = async () => {
+    const path = await window.electron.invoke('pick-cover');
+    if (path) {
+      const fileName = await window.electron.invoke('save-avatar', path);
+      setAvatarPath(fileName);
+      setAvatarTimestamp(Date.now());
+    }
+  };
 
   return (
     <div className="relative min-h-screen">
@@ -91,13 +122,62 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                 <div className="h-[1px] flex-1 bg-white/5" />
               </div>
 
-              <div className="space-y-4">
-                <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5 flex items-center justify-between group hover:border-accent/40 transition-colors cursor-pointer">
-                  <div>
-                    <p className="text-[9px] text-text-muted uppercase tracking-widest font-black mb-1">Global Username</p>
-                    <p className="text-lg font-syncopate font-bold text-white italic">Chiyo Voyager</p>
+              <div className="space-y-6">
+                <div className="flex items-center gap-6">
+                  <div 
+                    onClick={handleChangeAvatar}
+                    className="relative w-24 h-24 rounded-3xl bg-white/5 border border-white/10 overflow-hidden group cursor-pointer"
+                  >
+                    {avatarPath ? (
+                      <img src={`chiyo-asset://${avatarPath}?t=${avatarTimestamp}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-white/20">
+                         <User size={32} />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-[8px] font-black uppercase text-white tracking-widest">Change</span>
+                    </div>
                   </div>
-                  <ChevronRight size={18} className="text-text-muted group-hover:translate-x-1 transition-transform" />
+
+                  <div className="flex-1 space-y-4">
+                    {isEditingName ? (
+                      <div className="space-y-3">
+                        <input
+                          autoFocus
+                          value={tempName}
+                          onChange={(e) => setTempName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                          className="w-full bg-white/5 border border-accent/20 rounded-xl px-4 py-2 text-white font-syncopate text-xs font-bold outline-none focus:border-accent transition-all"
+                        />
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={handleSaveName}
+                            className="px-3 py-1.5 bg-accent text-background rounded-lg text-[9px] font-black uppercase tracking-widest"
+                          >
+                            Save Name
+                          </button>
+                          <button 
+                            onClick={() => setIsEditingName(false)}
+                            className="px-3 py-1.5 bg-white/5 text-white/40 rounded-lg text-[9px] font-black uppercase tracking-widest"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        onClick={() => setIsEditingName(true)}
+                        className="group cursor-pointer p-4 bg-white/[0.02] rounded-2xl border border-white/5 hover:border-accent/40 transition-colors"
+                      >
+                        <p className="text-[9px] text-text-muted uppercase tracking-widest font-black mb-1">Global Username</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-lg font-syncopate font-bold text-white italic">{username}</p>
+                          <ChevronRight size={16} className="text-text-muted opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0 transition-all" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </section>
