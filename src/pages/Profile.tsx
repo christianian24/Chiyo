@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Trophy, BookOpen, Hash, Star, Layout, Clock, CheckCircle2, XCircle, TrendingUp, Calendar, Zap } from 'lucide-react';
 import { Manga } from '../types';
@@ -9,6 +9,15 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
+  const [installDate, setInstallDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchInstallDate = async () => {
+      const date = await window.electron.invoke('get-installation-date');
+      setInstallDate(date);
+    };
+    fetchInstallDate();
+  }, []);
   // Statistics Calculations
   const totalSeries = mangas.length;
   const totalChapters = mangas.reduce((sum, m) => sum + (m.current_chapter || 0), 0);
@@ -81,11 +90,7 @@ const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
               </div>
             </div>
 
-            <div className="w-full grid grid-cols-2 gap-4 pt-4">
-               <div className="p-4 bg-white/[0.02] rounded-3xl border border-white/5">
-                  <p className="text-[8px] uppercase font-black tracking-widest text-text-muted mb-1">Rank</p>
-                  <p className="text-xl font-syncopate font-bold text-white">#01</p>
-               </div>
+            <div className="w-full grid grid-cols-1 gap-4 pt-4">
                <div className="p-4 bg-white/[0.02] rounded-3xl border border-white/5">
                   <p className="text-[8px] uppercase font-black tracking-widest text-text-muted mb-1">Status</p>
                   <p className="text-xl font-syncopate font-bold text-accent italic">Active</p>
@@ -194,7 +199,9 @@ const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] uppercase font-black tracking-[0.3em] text-accent/60">Deployment Date</p>
-                <p className="text-xl font-syncopate font-bold uppercase italic">System Initialized 2024</p>
+                <p className="text-xl font-syncopate font-bold uppercase italic">
+                  System Initialized {installDate ? new Date(installDate).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) : '...'}
+                </p>
               </div>
            </div>
            

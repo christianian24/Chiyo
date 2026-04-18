@@ -22,39 +22,7 @@ export function initDatabase() {
 
   db = new Database(dbPath);
   
-  // Safe Migration Logic
-  runMigrations();
-  
-  // Perform rolling backup
-  try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupFile = `chiyo-${timestamp}.db`;
-    const tempBackupPath = path.join(backupsPath, `${backupFile}.tmp`);
-    const finalBackupPath = path.join(backupsPath, backupFile);
-
-    // Initial backup creation using better-sqlite3's online backup
-    db.backup(tempBackupPath)
-      .then(() => {
-        fs.renameSync(tempBackupPath, finalBackupPath);
-        console.log('Database backup created:', finalBackupPath);
-
-        // Manage rotation (keep last 5)
-        const backups = fs.readdirSync(backupsPath)
-          .filter(f => f.startsWith('chiyo-') && f.endsWith('.db'))
-          .sort((a, b) => fs.statSync(path.join(backupsPath, b)).mtime.getTime() - fs.statSync(path.join(backupsPath, a)).mtime.getTime());
-
-        if (backups.length > 5) {
-          backups.slice(5).forEach(f => {
-            fs.unlinkSync(path.join(backupsPath, f));
-          });
-        }
-      })
-      .catch(err => console.error('Backup failed:', err));
-  } catch (err) {
-    console.error('Failed to initiate backup:', err);
-  }
-
-  // Initialize schema
+  // 1. Initialize schema first
   db.exec(`
     CREATE TABLE IF NOT EXISTS manga (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +41,46 @@ export function initDatabase() {
       tags TEXT DEFAULT "",
       source_url TEXT DEFAULT ""
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
   `);
+
+  // 2. Safe Migration Logic
+  runMigrations();
+
+  // 3. Initialize Installation Date
+  const installationDate = db.prepare('SELECT value FROM settings WHERE key = ?').get('installation_date');
+  if (!installationDate) {
+    db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('installation_date', new Date().toISOString());
+  }
+
+  // 4. Perform rolling backup (async)
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile = `chiyo-${timestamp}.db`;
+    const tempBackupPath = path.join(backupsPath, `${backupFile}.tmp`);
+    const finalBackupPath = path.join(backupsPath, backupFile);
+
+    db.backup(tempBackupPath)
+      .then(() => {
+        fs.renameSync(tempBackupPath, finalBackupPath);
+        console.log('Database backup created:', finalBackupPath);
+
+        const backups = fs.readdirSync(backupsPath)
+          .filter(f => f.startsWith('chiyo-') && f.endsWith('.db'))
+          .sort((a, b) => fs.statSync(path.join(backupsPath, b)).mtime.getTime() - fs.statSync(path.join(backupsPath, a)).mtime.getTime());
+
+        if (backups.length > 5) {
+          backups.slice(5).forEach(f => fs.unlinkSync(path.join(backupsPath, f)));
+        }
+      })
+      .catch(err => console.error('Backup failed:', err));
+  } catch (err) {
+    console.error('Failed to initiate backup:', err);
+  }
 
   console.log('Database initialized at:', dbPath);
 }
@@ -141,5 +148,8 @@ export const mangaQueries = {
   },
   updateChapter: (id: number, chapter: number) => {
     return db.prepare('UPDATE manga SET current_chapter = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(chapter, id);
+  },
+  getSetting: (key: string) => {
+    return db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
   }
 };

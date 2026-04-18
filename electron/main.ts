@@ -54,6 +54,57 @@ function createWindow() {
   }
 }
 
+// --- SINGLE INSTANCE LOCK ---
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, _commandLine, _workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (win) {
+      if (win.isMinimized()) win.restore()
+      win.focus()
+    }
+  })
+
+  // Create myWindow, load the rest of the app, etc...
+  app.whenReady().then(async () => {
+    initDatabase()
+    await cleanupOrphanedCovers() // Background cleanup
+
+    // --- PROTOCOL HANDLER [DETERMINISTIC] ---
+    protocol.handle('chiyo-asset', (request) => {
+      try {
+        const url = new URL(request.url)
+        let decodedPath = ''
+        if (url.hostname && url.hostname.length === 1) {
+          decodedPath = decodeURIComponent(url.hostname + ':' + url.pathname)
+        } else if (url.hostname) {
+          decodedPath = decodeURIComponent(url.hostname + url.pathname)
+        } else {
+          decodedPath = decodeURIComponent(url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname)
+        }
+        if (decodedPath.endsWith('/') || decodedPath.endsWith('\\')) {
+          decodedPath = decodedPath.slice(0, -1)
+        }
+        const finalPath = path.isAbsolute(decodedPath) ? decodedPath : getCoverPath(decodedPath)
+        const normalizedPath = path.normalize(finalPath)
+        
+        if (!fs.existsSync(normalizedPath)) {
+          return new Response('Not Found', { status: 404 })
+        }
+        
+        return net.fetch(pathToFileURL(normalizedPath).toString())
+      } catch (error) {
+        return new Response('Error', { status: 500 })
+      }
+    })
+
+    createWindow()
+  })
+}
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -65,54 +116,6 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
-})
-
-app.whenReady().then(async () => {
-  initDatabase()
-  await cleanupOrphanedCovers() // Background cleanup
-
-  // --- PROTOCOL HANDLER [DETERMINISTIC] ---
-  // Register the handler before creating the first window
-  protocol.handle('chiyo-asset', (request) => {
-    try {
-      const url = new URL(request.url)
-      
-      // On Windows, drive letters like C: often end up as the hostname 'c'
-      // We need to reconstruct the absolute path carefully.
-      let decodedPath = ''
-      if (url.hostname && url.hostname.length === 1) {
-        // Case: chiyo-asset://C:/path...
-        decodedPath = decodeURIComponent(url.hostname + ':' + url.pathname)
-      } else if (url.hostname) {
-        // Case: chiyo-asset://hostname/path...
-        decodedPath = decodeURIComponent(url.hostname + url.pathname)
-      } else {
-        // Case: chiyo-asset:///path...
-        decodedPath = decodeURIComponent(url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname)
-      }
-
-      // Remove trailing slash if present (Windows paths can have this from URL normalization)
-      if (decodedPath.endsWith('/') || decodedPath.endsWith('\\')) {
-        decodedPath = decodedPath.slice(0, -1)
-      }
-
-      // Resolve the actual file path
-      const finalPath = path.isAbsolute(decodedPath) ? decodedPath : getCoverPath(decodedPath)
-      const normalizedPath = path.normalize(finalPath)
-      
-      if (!fs.existsSync(normalizedPath)) {
-        console.warn('Asset not found:', normalizedPath)
-        return new Response('Not Found', { status: 404 })
-      }
-      
-      return net.fetch(pathToFileURL(normalizedPath).toString())
-    } catch (error) {
-      console.error('Protocol handler error:', error)
-      return new Response('Error', { status: 500 })
-    }
-  })
-
-  createWindow()
 })
 
 // --- Concurrency & Maintenance Logic ---
@@ -228,4 +231,9 @@ ipcMain.handle('pick-cover', async () => {
 
 ipcMain.handle('open-url', async (_, url: string) => {
   if (url) shell.openExternal(url);
+})
+
+ipcMain.handle('get-installation-date', async () => {
+  const result = mangaQueries.getSetting('installation_date') as { value: string } | undefined;
+  return result ? result.value : null;
 })

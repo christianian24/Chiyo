@@ -13,14 +13,10 @@ win:
   artifactName: ${productName}.Setup.${version}.${ext}
 nsis:
   oneClick: false
+  perMachine: true
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
-  runAfterFinish: true
-extraResources:
-  - from: app-data
-    to: app-data
-    filter:
-      - "**/*"
+  runAfterFinish: false
 # Native dependencies like better-sqlite3 require this
 asarUnpack:
   - "**/*.node"

@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Search, BookOpen, Settings, Filter, ChevronDown } from 'lucide-react'
+import { Plus, Search, BookOpen, Settings as SettingsIcon, Filter, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Manga } from './types'
 import Library from './pages/Library'
 import Detail from './pages/Detail'
+import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 import AddEditModal from './components/AddEditModal'
-import SettingsModal from './components/SettingsModal'
 import SplashScreen from './components/SplashScreen'
 import ConfirmModal from './components/ConfirmModal'
 import CustomSelect from './components/CustomSelect'
-import Profile from './pages/Profile'
+
 
 const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Slice of Life", "Sci-Fi", "Mystery"]
 const FORMATS = ["Manga", "Manhwa", "Manhua", "Light Novel", "One-shot"]
@@ -29,7 +30,7 @@ function App() {
   const [selectedMangaId, setSelectedMangaId] = useState<number | null>(null)
   const [editingManga, setEditingManga] = useState<Manga | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isSettingsOpen_DEPRECATED, setIsSettingsOpen] = useState(false) // No longer used as a state trigger
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedGenre, setSelectedGenre] = useState<string>('Any')
@@ -37,7 +38,7 @@ function App() {
   const [selectedPubStatus, setSelectedPubStatus] = useState<string>('Any')
   const [loading, setLoading] = useState(true)
   const [sortBy, setSortBy] = useState<string>('latest')
-  const [view, setView] = useState<'library' | 'detail' | 'profile'>('library')
+  const [view, setView] = useState<'library' | 'detail' | 'profile' | 'settings'>('library')
   const [showSplash, setShowSplash] = useState(true)
   const [isLogoLoaded, setIsLogoLoaded] = useState(false)
   const [mangaToDelete, setMangaToDelete] = useState<Manga | null>(null)
@@ -104,6 +105,10 @@ function App() {
 
   const navigateToProfile = () => {
     setView('profile')
+  }
+
+  const navigateToSettings = () => {
+    setView('settings')
   }
 
   const handleAddManga = async (mangaData: any) => {
@@ -296,10 +301,10 @@ function App() {
                   </div>
 
                   <button
-                    onClick={() => setIsSettingsOpen(true)}
+                    onClick={navigateToSettings}
                     className="w-10 h-10 flex items-center justify-center bg-surface/50 rounded-xl border border-white/5 hover:bg-white/5 transition-colors text-text-muted hover:text-white self-end mb-0.5"
                   >
-                    <Settings size={18} />
+                    <SettingsIcon size={18} />
                   </button>
 
                   <button
@@ -348,6 +353,18 @@ function App() {
                       onBack={navigateToLibrary} 
                     />
                   </motion.div>
+                ) : view === 'settings' ? (
+                  <motion.div
+                    key="settings"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <Settings 
+                      onBack={navigateToLibrary} 
+                    />
+                  </motion.div>
                 ) : (
                   <motion.div
                     key="library"
@@ -381,9 +398,6 @@ function App() {
                   initialData={editingManga}
                   isElectron={isElectron}
                 />
-              )}
-              {isSettingsOpen && (
-                <SettingsModal onClose={() => setIsSettingsOpen(false)} />
               )}
               {mangaToDelete && (
                 <ConfirmModal
