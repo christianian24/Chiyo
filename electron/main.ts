@@ -40,7 +40,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
-    backgroundColor: '#0f1115',
+    backgroundColor: '#0a0b0d',
   })
 
   win.once('ready-to-show', () => {

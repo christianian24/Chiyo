@@ -56,7 +56,7 @@ function App() {
       const preloading = Promise.all([
         fetchMangas(),
         window.electron.invoke('get-maintenance-status'),
-        new Promise(resolve => setTimeout(resolve, 4500)) // 2.5s Elegant Pause
+        new Promise(resolve => setTimeout(resolve, 2500)) // 2.5s Elegant Pause
       ]);
 
       await preloading;
@@ -140,7 +140,7 @@ function App() {
                     {/* Logo Glow */}
                     <div className="absolute inset-0 bg-accent/20 blur-xl rounded-full scale-150 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <img 
-                      src="/logo.jpg" 
+                      src="logo.jpg" 
                       alt="Chiyo Logo" 
                       className="w-full h-full object-contain relative z-10"
                       onError={(e) => {

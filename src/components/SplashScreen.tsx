@@ -11,7 +11,7 @@ export default function SplashScreen({ onLoaded }: SplashScreenProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f1115]"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0b0d]"
     >
       <div className="relative">
         {/* Elegant Pulse Ring */}
@@ -36,7 +36,7 @@ export default function SplashScreen({ onLoaded }: SplashScreenProps) {
           className="relative w-32 h-32 rounded-full p-1 bg-white/[0.03] border border-white/10 shadow-2xl overflow-hidden"
         >
             <motion.img
-              src="/logo.jpg"
+              src="logo.jpg"
               alt="Chiyo"
               className="w-full h-full object-contain rounded-full"
               onLoad={onLoaded}
