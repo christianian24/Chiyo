@@ -31,12 +31,6 @@ Chiyo is built on the principle of local ownership.
 
 ---
 
-## 📥 Download
-
-Chiyo is distributed as a standard Windows installer.
-
-**[Download Chiyo v1.0.1 (.exe)](release/1.0.1/Chiyo.Setup.1.0.1.exe)**
-
 ---
 
 ## 📸 Screenshots
