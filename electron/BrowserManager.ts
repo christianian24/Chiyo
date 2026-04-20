@@ -266,4 +266,10 @@ export class BrowserManager {
       this.activeFetches = Math.max(0, this.activeFetches - 1);
     }
   }
+
+  destroy() {
+    if (this.win && !this.win.isDestroyed()) {
+      this.win.destroy();
+    }
+  }
 }

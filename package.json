@@ -1,6 +1,6 @@
 {
   "name": "chiyo",
-  "version": "1.1.12",
+  "version": "1.1.12(fix)",
   "description": "A personal offline manga/manhwa tracker",
   "main": "dist-electron/main.js",
   "type": "module",

@@ -270,6 +270,10 @@ function createWindow() {
   } else {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+
+  win.on('closed', () => {
+    win = null
+  })
 }
 
 // --- SINGLE INSTANCE LOCK ---
@@ -280,7 +284,7 @@ if (!gotTheLock) {
 } else {
   app.on('second-instance', (_event, _commandLine, _workingDirectory) => {
     // Someone tried to run a second instance, we should focus our window.
-    if (win) {
+    if (win && !win.isDestroyed()) {
       if (win.isMinimized()) win.restore()
       win.focus()
     }
@@ -377,6 +381,7 @@ app.on('before-quit', async (e) => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    browserManager?.destroy()
     sourceManager.destroy()
     app.quit()
     win = null
