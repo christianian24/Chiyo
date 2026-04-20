@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { X, Upload, Image as ImageIcon, Calendar, BookOpen, Hash, Tag, Layers, Info, CheckCircle2, Clock, XCircle, Zap, ChevronDown, Check } from 'lucide-react'
+import { X, Image as ImageIcon, Calendar, BookOpen, Hash, Tag, Layers, Info, CheckCircle2, Clock, XCircle, Zap, ChevronDown, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CustomSelect from './CustomSelect'
+import { SmartImage } from './SmartImage'
+import { resolveMangaCoverSrc } from '../utils/coverResolver'
+import { processGenres } from '../utils/genres'
 
 interface AddEditModalProps {
   onClose: () => void;
@@ -11,7 +14,7 @@ interface AddEditModalProps {
 }
 
 const GENRES = ["Action", "Adventure", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Slice of Life", "Sci-Fi", "Mystery"];
-const FORMATS = ["Manga", "Manhwa", "Manhua", "Light Novel", "One-shot"];
+const FORMATS = ["Manga", "Manhwa", "Manhua", { value: "Webtoon", label: "Webtoons" }, "Light Novel", "One-shot"];
 const PUB_STATUSES = ["Ongoing", "Completed", "Hiatus", "Cancelled"];
 
 const statusConfig = {
@@ -23,6 +26,10 @@ const statusConfig = {
 };
 
 export default function AddEditModal({ onClose, onSubmit, initialData, isElectron }: AddEditModalProps) {
+  const initialGenres = Array.isArray(initialData?.genres)
+    ? initialData.genres.join(',')
+    : (initialData?.genres || '');
+
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     status: initialData?.status || 'reading',
@@ -30,11 +37,11 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
     total_chapters: initialData?.total_chapters || '',
     date_started: initialData?.date_started || '',
     date_finished: initialData?.date_finished || '',
-    genres: initialData?.genres || '',
+    genres: initialGenres,
     format: initialData?.format || '',
     publishing_status: initialData?.publishing_status || '',
-    temp_cover_path: '',
     cover_path: initialData?.cover_path || '',
+    cover_remote_url: initialData?.cover_remote_url || '',
     tags: initialData?.tags || '',
     source_url: initialData?.source_url || '',
     rating: initialData?.rating || 0.0
@@ -52,19 +59,6 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
     }
   };
 
-  const handlePickImage = async () => {
-    if (!isElectron) {
-      alert('File picking is only available in the desktop application.');
-      return;
-    }
-    const path = await window.electron.invoke('pick-cover');
-    if (path) {
-      setFormData(prev => ({ ...prev, temp_cover_path: path }));
-    }
-  };
-
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -80,7 +74,7 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
       const submissionData = {
         ...formData,
         total_chapters: formData.total_chapters === '' ? null : parseInt(formData.total_chapters as string),
-        genres: formData.genres.split(',').filter(Boolean).join(','), // Remove any empty parts
+        genres: processGenres(formData.genres).filter(Boolean),
       };
       await onSubmit(initialData?.id ? { ...submissionData, id: initialData.id } : submissionData);
       setIsSubmitting(false); // Reset on success in case modal doesn't unmount (unlikely here)
@@ -91,9 +85,7 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
     }
   };
 
-  const currentCover = formData.temp_cover_path
-    ? `chiyo-asset://${formData.temp_cover_path}`
-    : (formData.cover_path ? `chiyo-asset://${formData.cover_path}` : null);
+  const currentCover = resolveMangaCoverSrc(formData as any);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -130,7 +122,7 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
                 className="aspect-[3/4.5] bg-surface-lighter rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group"
               >
                 {currentCover ? (
-                  <img src={currentCover} className="w-full h-full object-cover" />
+                  <SmartImage src={currentCover} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-3 opacity-20">
                     <ImageIcon size={32} />
@@ -168,22 +160,7 @@ export default function AddEditModal({ onClose, onSubmit, initialData, isElectro
                   </div>
                 </div>
 
-                {/* Change Cover Hover */}
-                <button
-                  type="button"
-                  onClick={handlePickImage}
-                  className="absolute inset-0 bg-accent/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
-                >
-                  <Upload size={24} className="text-background" strokeWidth={3} />
-                </button>
               </motion.div>
-              <button
-                type="button"
-                onClick={handlePickImage}
-                className="w-full py-2.5 bg-white/[0.03] border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition-colors"
-              >
-                Change Artwork
-              </button>
             </div>
 
             {/* Form Fields Column */}

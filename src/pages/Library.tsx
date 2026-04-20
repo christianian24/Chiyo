@@ -39,7 +39,9 @@ export default function Library({ mangas, allMangas, onSelect, onQuickUpdate, lo
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative -mt-8 space-y-4">
+      <div className="absolute -top-20 right-0 w-[420px] h-[420px] bg-accent/10 blur-[130px] rounded-full pointer-events-none" />
+
       <AnimatePresence>
         {!isFiltering && (
           <motion.div
@@ -48,68 +50,92 @@ export default function Library({ mangas, allMangas, onSelect, onQuickUpdate, lo
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <Dashboard manga={allMangas} onSelect={onSelect} />
+            <section className="relative p-6 rounded-[2rem] border border-white/10 bg-[#0d0e12] shadow-2xl overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
+                <svg width="100%" height="100%">
+                  <pattern id="library-dash-grid" width="34" height="34" patternUnits="userSpaceOnUse">
+                    <path d="M 34 0 L 0 0 0 34" fill="none" stroke="currentColor" strokeWidth="0.6" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#library-dash-grid)" />
+                </svg>
+              </div>
+              <div className="relative">
+                <Dashboard manga={allMangas} onSelect={onSelect} />
+              </div>
+            </section>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Main Library Header */}
-      <div className="flex items-center justify-between px-2 pt-4 pb-6">
-        <div className="flex items-center gap-4">
-          <Database size={16} className="text-accent/40" />
-          <h2 className="text-sm font-black uppercase italic tracking-tighter text-white">
-            <span className="text-accent">Chiyo</span> Core Library
-          </h2>
-          <div className="flex items-center gap-2 px-3 py-0.5 bg-white/5 rounded-md border border-white/5">
-             <span className="text-[8px] font-mono-tech font-bold text-text-muted/60 uppercase">{mangas.length} SECTORS</span>
-          </div>
+      <section className="relative p-6 rounded-[2rem] border border-white/10 bg-[#0d0e12] shadow-2xl overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none">
+          <svg width="100%" height="100%">
+            <pattern id="library-main-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+              <path d="M 36 0 L 0 0 0 36" fill="none" stroke="currentColor" strokeWidth="0.6" />
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#library-main-grid)" />
+          </svg>
         </div>
-        <div className="h-[1px] flex-1 mx-8 bg-gradient-to-r from-white/10 to-transparent" />
-      </div>
+        <div className="relative">
+          {/* Main Library Header */}
+          <div className="flex items-center justify-between px-2 pt-1 pb-6">
+            <div className="flex items-center gap-4">
+              <Database size={16} className="text-accent/50" />
+              <h2 className="text-sm font-black uppercase italic tracking-tighter text-white">
+                <span className="text-accent">Chiyo</span> Core Library
+              </h2>
+              <div className="flex items-center gap-2 px-3 py-0.5 bg-white/5 rounded-md border border-white/10">
+                <span className="text-[8px] font-mono-tech font-bold text-text-muted/70 uppercase">{mangas.length} Sectors</span>
+              </div>
+            </div>
+            <div className="h-[1px] flex-1 mx-8 bg-gradient-to-r from-white/10 to-transparent" />
+          </div>
 
-      {mangas.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="h-[50vh] flex flex-col items-center justify-center text-text-muted gap-8"
-        >
-          <div className="relative group">
-            <div className="absolute inset-0 bg-accent/10 blur-[100px] rounded-full scale-150 group-hover:bg-accent/20 transition-colors" />
-            <div className="relative p-12 bg-[#0d0e12] backdrop-blur-3xl rounded-[3rem] border border-white/5 shadow-2xl">
-              <LibraryIcon size={80} strokeWidth={0.5} className="text-white/10" />
-            </div>
-          </div>
-          <div className="text-center space-y-3">
-            <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Zero Data Detected</h3>
-            <div className="flex flex-col items-center gap-2 opacity-50">
-              <span className="text-[9px] uppercase tracking-[0.4em] font-black text-accent/60">Search parameters yielding null results</span>
-              <p className="text-[8px] uppercase tracking-[0.2em] font-bold italic">Clear active filters to restore library visibility</p>
-            </div>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-6 px-10 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:border-accent/40 hover:text-white"
+          {mangas.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="h-[50vh] flex flex-col items-center justify-center text-text-muted gap-8"
             >
-              Reset All Sectors
-            </button>
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          variants={container}
-          initial="hidden"
-          animate="show"
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-8 px-2"
-        >
-          {mangas.map(manga => (
-            <MangaCard
-              key={manga.id}
-              manga={manga}
-              onClick={onSelect}
-              onQuickUpdate={onQuickUpdate}
-            />
-          ))}
-        </motion.div>
-      )}
+              <div className="relative group">
+                <div className="absolute inset-0 bg-accent/10 blur-[100px] rounded-full scale-150 group-hover:bg-accent/20 transition-colors" />
+                <div className="relative p-12 bg-[#0d0e12] backdrop-blur-3xl rounded-[3rem] border border-white/5 shadow-2xl">
+                  <LibraryIcon size={80} strokeWidth={0.5} className="text-white/10" />
+                </div>
+              </div>
+              <div className="text-center space-y-3">
+                <h3 className="text-3xl font-black text-white italic tracking-tighter uppercase leading-none">Zero Data Detected</h3>
+                <div className="flex flex-col items-center gap-2 opacity-50">
+                  <span className="text-[9px] uppercase tracking-[0.4em] font-black text-accent/60">Search parameters yielding null results</span>
+                  <p className="text-[8px] uppercase tracking-[0.2em] font-bold italic">Clear active filters to restore library visibility</p>
+                </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-6 px-10 py-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all hover:border-accent/40 hover:text-white"
+                >
+                  Reset All Sectors
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-8 px-2"
+            >
+              {mangas.map(manga => (
+                <MangaCard
+                  key={manga.id}
+                  manga={manga}
+                  onClick={onSelect}
+                  onQuickUpdate={onQuickUpdate}
+                />
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

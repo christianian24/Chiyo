@@ -45,7 +45,11 @@ export class AchievementService {
     // 2. Genre Specialist
     const uniqueGenres = new Set<string>();
     mangas.forEach(m => {
-      if (m.genres) m.genres.split(',').forEach(g => uniqueGenres.add(g.trim()));
+      if (Array.isArray(m.genres)) {
+        m.genres.forEach((genre) => {
+          if (genre) uniqueGenres.add(genre);
+        });
+      }
     });
     if (uniqueGenres.size >= 3 && !unlockedSet.has('genre_specialist')) {
       toUnlock.push(ACHIEVEMENTS.find(a => a.id === 'genre_specialist')!);

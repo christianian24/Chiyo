@@ -1,6 +1,8 @@
 import { Manga } from '../types'
 import { BookOpen, CheckCircle2, Clock, XCircle, Plus, Cpu, Activity } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { SmartImage } from './SmartImage'
+import { resolveMangaCoverSrc } from '../utils/coverResolver'
 
 interface MangaCardProps {
   manga: Manga;
@@ -19,6 +21,8 @@ const statusConfig = {
 export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardProps) {
   const status = statusConfig[manga.status] || statusConfig.reading;
   const StatusIcon = status.icon;
+
+  const coverSrc = resolveMangaCoverSrc(manga);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -42,11 +46,11 @@ export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardPr
       <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent/0 group-hover:border-accent/60 transition-all duration-500 z-30" />
 
       {/* Cover Image with Cooling Fan Pulse */}
-      {manga.cover_url ? (
+      {coverSrc ? (
         <div className="relative w-full h-full overflow-hidden">
-          <img 
-            src={manga.cover_url} 
-            alt={manga.title} 
+          <SmartImage
+            src={coverSrc}
+            alt={manga.title}
             className="w-full h-full object-cover grayscale-[0.2] brightness-90 group-hover:grayscale-0 group-hover:brightness-110 group-hover:scale-110 transition-all duration-1000 ease-out"
           />
           <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/5 transition-colors duration-500" />
@@ -72,20 +76,20 @@ export default function MangaCard({ manga, onClick, onQuickUpdate }: MangaCardPr
           </h3>
 
           <div className="flex items-center justify-between">
-             <div className="flex items-baseline gap-1">
-                <span className="text-lg font-syncopate font-bold text-white leading-none">
-                  {manga.current_chapter.toString().padStart(2, '0')}
-                </span>
-                <span className="text-[8px] font-mono-tech font-bold text-text-muted/40 uppercase">
-                   / {manga.total_chapters || '??'}
-                </span>
-             </div>
-             
-             {/* Read percentage indicator */}
-             <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
-                <Activity size={10} className="text-accent" />
-                <span className="text-[7px] font-mono-tech text-white/60">SYNCED</span>
-             </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-syncopate font-bold text-white leading-none">
+                {manga.current_chapter.toString().padStart(2, '0')}
+              </span>
+              <span className="text-[8px] font-mono-tech font-bold text-text-muted/40 uppercase">
+                / {manga.total_chapters || '??'}
+              </span>
+            </div>
+
+            {/* Read percentage indicator */}
+            <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+              <Activity size={10} className="text-accent" />
+              <span className="text-[7px] font-mono-tech text-white/60">SYNCED</span>
+            </div>
           </div>
 
           {/* Micro-Progress Bar */}

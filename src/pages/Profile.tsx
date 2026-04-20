@@ -6,6 +6,8 @@ import { AchievementService, Achievement, ACHIEVEMENTS } from '../services/Achie
 import { ActivityHeatmap } from '../components/charts/ActivityHeatmap';
 import { GenreRadar } from '../components/charts/GenreRadar';
 import { toPng } from 'html-to-image';
+import { SmartImage } from '../components/SmartImage';
+import { resolveMangaCoverSrc } from '../utils/coverResolver';
 
 interface ProfileProps {
   mangas: Manga[];
@@ -46,19 +48,21 @@ const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
   // Statistics Calculations
   const totalSeries = mangas.length;
   const totalChapters = mangas.reduce((sum, m) => sum + (m.current_chapter || 0), 0);
-  const completedCount = mangas.filter(m => m.status === 'completed').length;
+  const completedCount = mangas.filter(m => {
+    if (m.status === 'completed') return true;
+    const total = m.total_chapters || 0;
+    return total > 0 && (m.current_chapter || 0) >= total;
+  }).length;
   const readingCount = mangas.filter(m => m.status === 'reading').length;
   const masteryRate = totalSeries > 0 ? Math.round((completedCount / totalSeries) * 100) : 0;
 
   // Genre analysis
   const genreCounts: Record<string, number> = {};
   mangas.forEach(m => {
-    if (m.genres) {
-      m.genres.split(',').forEach(g => {
-        const genre = g.trim();
-        if (genre) genreCounts[genre] = (genreCounts[genre] || 0) + 1;
-      });
-    }
+    if (!Array.isArray(m.genres)) return;
+    m.genres.forEach((genre) => {
+      if (genre) genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+    });
   });
   const sortedGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
 
@@ -76,10 +80,10 @@ const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
   // Radar data
   const radarData = sortedGenres.slice(0, 6).map(([label, value]) => ({ label, value }));
 
-  // Recent activity (Last 4 updated)
+  // Recent activity (Last 6 updated)
   const recentActivity = [...mangas]
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-    .slice(0, 4);
+    .slice(0, 6);
 
   const handleExport = async () => {
     if (profileRef.current === null) return;
@@ -422,7 +426,7 @@ const Profile: React.FC<ProfileProps> = ({ mangas, onBack }) => {
                 >
                   <span className="absolute -bottom-4 -right-4 text-7xl font-syncopate font-bold text-white/[0.02] pointer-events-none group-hover/card:text-accent/[0.05] transition-colors">0{i + 1}</span>
                   <div className="w-20 h-28 rounded-2xl overflow-hidden shadow-2xl group-hover/card:scale-105 transition-transform duration-700 relative z-10 shrink-0">
-                    <img src={manga.cover_path ? `chiyo-asset://${manga.cover_path}` : ''} className="w-full h-full object-cover" />
+                    <SmartImage src={resolveMangaCoverSrc(manga)} className="w-full h-full object-cover" />
                   </div>
                   <div className="space-y-3 overflow-hidden relative z-10">
                     <div className="space-y-1">

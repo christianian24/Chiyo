@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
+import { app, net } from 'electron';
 import sharp from 'sharp';
 
 export async function saveCoverImage(tempFilePath: string): Promise<string> {
@@ -20,8 +20,18 @@ export async function saveCoverImage(tempFilePath: string): Promise<string> {
   const tempPath = path.join(coversPath, `${fileName}.tmp`);
 
   try {
+    let input: string | Buffer = tempFilePath;
+
+    if (tempFilePath.startsWith('http') || tempFilePath.startsWith('//')) {
+      const url = tempFilePath.startsWith('//') ? `https:${tempFilePath}` : tempFilePath;
+      const response = await net.fetch(url);
+      if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+      const arrayBuffer = await response.arrayBuffer();
+      input = Buffer.from(arrayBuffer);
+    }
+
     // Process image: Resize (max 400x600) + Convert to WebP
-    await sharp(tempFilePath)
+    await sharp(input)
       .resize(400, 600, {
         fit: 'inside',
         withoutEnlargement: true

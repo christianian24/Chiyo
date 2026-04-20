@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shield, HardDrive, Info, Share, Database, User, Palette, ChevronRight, Check, AlertCircle, RefreshCw, Loader2, Download, Upload, AlertTriangle, X, Cpu, Activity } from 'lucide-react';
+import { ArrowLeft, Shield, HardDrive, Info, Share, Database, User, Palette, ChevronRight, Check, AlertCircle, RefreshCw, Loader2, Download, Upload, AlertTriangle, X, Cpu, Activity, Search, Plus } from 'lucide-react';
 
 interface SettingsProps {
   onBack: () => void;
+  onAddCustomEntry: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ onBack }) => {
+interface LocalManga {
+  id: number;
+  title: string;
+  current_chapter: number;
+}
+
+const Settings: React.FC<SettingsProps> = ({ onBack, onAddCustomEntry }) => {
+  type AppSizePreset = 'default' | '800x1024';
   const [status, setStatus] = useState<any>(null);
   const [backupStats, setBackupStats] = useState<{ count: number; lastBackup: string | null }>({ count: 0, lastBackup: null });
   const [isBackingUp, setIsBackingUp] = useState(false);
@@ -17,6 +25,16 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [avatarTimestamp, setAvatarTimestamp] = useState(Date.now());
+  const [autoAdvance, setAutoAdvance] = useState('true');
+  const [appSizePreset, setAppSizePreset] = useState<AppSizePreset>('default');
+  const [isRefreshingCovers, setIsRefreshingCovers] = useState(false);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
+  const [mangaList, setMangaList] = useState<LocalManga[]>([]);
+  const [resetQuery, setResetQuery] = useState('');
+  const [targetManga, setTargetManga] = useState<LocalManga | null>(null);
+  const [showResetOneConfirm, setShowResetOneConfirm] = useState(false);
+  const [showResetAllConfirm, setShowResetAllConfirm] = useState(false);
+  const [isResettingProgress, setIsResettingProgress] = useState(false);
 
   useEffect(() => {
     refreshData();
@@ -25,7 +43,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   const refreshData = async () => {
     const maint = await window.electron.invoke('get-maintenance-status');
     setStatus(maint);
-    
+
     const stats = await window.electron.invoke('get-backup-stats');
     setBackupStats(stats);
 
@@ -34,9 +52,22 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       setUsername(name);
       setTempName(name);
     }
-    
+
     const path = await window.electron.invoke('get-setting', 'avatar_path');
     if (path) setAvatarPath(path);
+
+    const adv = await window.electron.invoke('get-setting', 'auto_advance');
+    if (adv) setAutoAdvance(adv);
+
+    const appSize = await window.electron.invoke('get-setting', 'app_window_size_preset');
+    if (appSize === '800x1024' || appSize === 'default') {
+      setAppSizePreset(appSize);
+    } else {
+      setAppSizePreset('default');
+    }
+
+    const mangas = await window.electron.invoke('get-mangas');
+    setMangaList(Array.isArray(mangas) ? mangas : []);
   };
 
   const handleManualBackup = async () => {
@@ -97,6 +128,73 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
     }
   };
 
+  const handleRefreshAllCovers = async () => {
+    if (isRefreshingCovers) return;
+    setIsRefreshingCovers(true);
+    try {
+      await window.electron.invoke('manga:refresh-all-covers');
+    } catch (err) {
+      console.error('Cover refresh failed to start:', err);
+    } finally {
+      setTimeout(() => setIsRefreshingCovers(false), 1200);
+    }
+  };
+
+  const handleRefreshAllData = async () => {
+    if (isRefreshingData) return;
+    setIsRefreshingData(true);
+    try {
+      await window.electron.invoke('manga:refresh-all-data');
+      await refreshData();
+    } catch (err) {
+      console.error('Manga data refresh failed:', err);
+    } finally {
+      setTimeout(() => setIsRefreshingData(false), 1200);
+    }
+  };
+
+  const handleAppSizePreset = async (preset: AppSizePreset) => {
+    setAppSizePreset(preset);
+    try {
+      await window.electron.invoke('app:set-window-size-preset', { preset });
+    } catch (err) {
+      console.error('App size preset update failed:', err);
+    }
+  };
+
+  const handleResetSingle = async () => {
+    if (!targetManga || isResettingProgress) return;
+    setIsResettingProgress(true);
+    try {
+      await window.electron.invoke('manga:reset-progress', { id: targetManga.id });
+      await refreshData();
+    } catch (err) {
+      console.error('Single manga progress reset failed:', err);
+    } finally {
+      setIsResettingProgress(false);
+      setShowResetOneConfirm(false);
+      setTargetManga(null);
+    }
+  };
+
+  const handleResetAll = async () => {
+    if (isResettingProgress) return;
+    setIsResettingProgress(true);
+    try {
+      await window.electron.invoke('manga:reset-all-progress');
+      await refreshData();
+    } catch (err) {
+      console.error('Global progress reset failed:', err);
+    } finally {
+      setIsResettingProgress(false);
+      setShowResetAllConfirm(false);
+    }
+  };
+
+  const filteredManga = mangaList
+    .filter((m) => m.title.toLowerCase().includes(resetQuery.toLowerCase()))
+    .slice(0, 8);
+
   return (
     <div className="relative min-h-screen">
       {/* Cinematic Background Elements */}
@@ -115,30 +213,39 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
         <span className="text-[10px] uppercase font-black tracking-[0.4em] italic">Return to Library</span>
       </motion.button>
 
-      <div className="relative z-10 max-w-5xl">
+      <div className="relative z-10 max-w-6xl">
         <header className="mb-20 space-y-4">
-           <div className="flex items-center gap-4">
-              <div className="w-12 h-[2px] bg-accent" />
-              <span className="text-[10px] font-black uppercase tracking-[0.6em] text-accent italic">Global Kernel Controller</span>
-           </div>
-          <motion.h2 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-6xl font-black uppercase italic tracking-tighter drop-shadow-2xl"
-          >
-            Command Center
-          </motion.h2>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-[2px] bg-accent" />
+            <span className="text-[10px] font-black uppercase tracking-[0.6em] text-accent italic">Global Kernel Controller</span>
+          </div>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <motion.h2
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-5xl lg:text-6xl font-black uppercase italic tracking-tighter drop-shadow-2xl"
+            >
+              Command Center
+            </motion.h2>
+            <button
+              onClick={onAddCustomEntry}
+              className="btn btn-primary h-11 px-6 flex items-center gap-2 shrink-0 self-start lg:self-auto"
+            >
+              <Plus size={16} strokeWidth={3} />
+              <span className="text-[10px] uppercase tracking-[0.2em] font-black">Add Custom Entry</span>
+            </button>
+          </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 pb-20">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 xl:gap-10 pb-20">
           {/* Left Column: System & Identity */}
-          <div className="space-y-10">
+          <div className="space-y-8">
             {/* System Integrity */}
             <section className="p-10 bg-[#0d0e12] border border-white/[0.03] rounded-[3rem] space-y-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-5">
-                 <Shield size={100} />
+                <Shield size={100} />
               </div>
-              
+
               <div className="flex items-center gap-4 relative z-10">
                 <Cpu size={16} className="text-accent" />
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-text-muted/40 italic">Kernel Sanity</span>
@@ -174,7 +281,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                       </p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={handleManualBackup}
                     disabled={isBackingUp}
                     className="p-3 rounded-xl bg-white/5 text-text-muted hover:text-accent hover:bg-accent/10 transition-all border border-transparent hover:border-accent/20 relative z-10"
@@ -182,11 +289,51 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                     <RefreshCw size={18} className={isBackingUp ? 'animate-spin' : ''} />
                   </button>
                 </div>
+
+                {/* Cover Repair Engine */}
+                <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5 flex items-center justify-between group hover:border-accent/40 transition-all relative overflow-hidden">
+                  <div className="flex items-center gap-5 relative z-10">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isRefreshingCovers ? 'bg-accent text-background shadow-[0_0_15px_rgba(255,77,77,0.4)]' : 'bg-white/5 text-accent'} group-hover:scale-110`}>
+                      {isRefreshingCovers ? <Loader2 size={24} className="animate-spin" /> : <RefreshCw size={24} strokeWidth={1.5} />}
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-[0.3em] mb-1">Cover Repair Engine</p>
+                      <p className="text-sm font-bold text-white tracking-tight uppercase italic">Safe Refresh All Covers</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleRefreshAllCovers}
+                    disabled={isRefreshingCovers}
+                    className="p-3 rounded-xl bg-white/5 text-text-muted hover:text-accent hover:bg-accent/10 transition-all border border-transparent hover:border-accent/20 relative z-10"
+                  >
+                    <RefreshCw size={18} className={isRefreshingCovers ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+
+                {/* Full Manga Data Sync */}
+                <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5 flex items-center justify-between group hover:border-accent/40 transition-all relative overflow-hidden">
+                  <div className="flex items-center gap-5 relative z-10">
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isRefreshingData ? 'bg-accent text-background shadow-[0_0_15px_rgba(255,77,77,0.4)]' : 'bg-white/5 text-accent'} group-hover:scale-110`}>
+                      {isRefreshingData ? <Loader2 size={24} className="animate-spin" /> : <RefreshCw size={24} strokeWidth={1.5} />}
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-[0.3em] mb-1">Source Sync Engine</p>
+                      <p className="text-sm font-bold text-white tracking-tight uppercase italic">Refresh All Manga Data</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleRefreshAllData}
+                    disabled={isRefreshingData}
+                    className="p-3 rounded-xl bg-white/5 text-text-muted hover:text-accent hover:bg-accent/10 transition-all border border-transparent hover:border-accent/20 relative z-10"
+                  >
+                    <RefreshCw size={18} className={isRefreshingData ? 'animate-spin' : ''} />
+                  </button>
+                </div>
               </div>
             </section>
 
             {/* Identity Settings */}
-             <section className="p-10 bg-[#0d0e12] border border-white/[0.03] rounded-[3rem] space-y-10 shadow-2xl">
+            <section className="p-10 bg-[#0d0e12] border border-white/[0.03] rounded-[3rem] space-y-10 shadow-2xl">
               <div className="flex items-center gap-4">
                 <User size={16} className="text-accent" />
                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-text-muted/40 italic">Personnel ID</span>
@@ -195,7 +342,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
 
               <div className="space-y-8">
                 <div className="flex items-center gap-8">
-                  <div 
+                  <div
                     onClick={handleChangeAvatar}
                     className="relative w-28 h-28 rounded-[2rem] bg-white/5 border border-white/10 overflow-hidden group cursor-pointer shadow-premium"
                   >
@@ -203,7 +350,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                       <img src={`chiyo-asset://${avatarPath}?t=${avatarTimestamp}`} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-white/10">
-                         <User size={40} strokeWidth={1} />
+                        <User size={40} strokeWidth={1} />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-accent/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
@@ -242,8 +389,135 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
           </div>
 
           {/* Right Column: Data & About */}
-          <div className="space-y-10">
-            {/* Master Archive (NEW Sector) */}
+          <div className="space-y-8">
+            {/* Progress Reset Console */}
+            <section className="p-10 bg-[#0d0e12] border border-white/[0.03] rounded-[3rem] space-y-8 shadow-2xl relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <AlertCircle size={16} className="text-accent" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-text-muted/40 italic">Progress Reset Console</span>
+                <div className="h-[1px] flex-1 bg-white/5" />
+              </div>
+
+              <div className="space-y-4">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/60" />
+                  <input
+                    type="text"
+                    value={resetQuery}
+                    onChange={(e) => setResetQuery(e.target.value)}
+                    placeholder="Search manga title to reset progress..."
+                    className="w-full pl-11 h-11 bg-white/[0.02] border border-white/5 rounded-xl text-sm outline-none focus:border-accent/40 transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-2 max-h-64 overflow-auto pr-1 scrollbar-hide">
+                  {filteredManga.map((manga) => (
+                    <div key={manga.id} className="p-4 bg-white/[0.02] rounded-xl border border-white/5 flex items-center justify-between">
+                      <div className="overflow-hidden pr-4">
+                        <p className="text-xs font-bold text-white line-clamp-1">{manga.title}</p>
+                        <p className="text-[9px] uppercase tracking-widest text-text-muted/50 font-black">
+                          Current Chapter: {manga.current_chapter || 0}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setTargetManga(manga);
+                          setShowResetOneConfirm(true);
+                        }}
+                        className="px-3 py-2 bg-red-600/10 border border-red-600/20 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-600 hover:text-white transition-all"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  ))}
+                  {resetQuery && filteredManga.length === 0 && (
+                    <div className="py-6 text-center text-[9px] uppercase tracking-widest text-text-muted/50">
+                      No manga found
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-red-600/20 space-y-4">
+                <div className="flex items-center gap-3 text-red-400/80">
+                  <AlertTriangle size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em]">Caution Zone</span>
+                </div>
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  Reset all manga reading progress and clear all chapter progress history. This cannot be undone.
+                </p>
+                <button
+                  onClick={() => setShowResetAllConfirm(true)}
+                  className="w-full h-11 rounded-xl bg-red-600/10 border border-red-600/20 text-red-400 hover:bg-red-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.3em]"
+                >
+                  Reset All Progress Data
+                </button>
+              </div>
+            </section>
+
+            {/* Reading Protocol (NEW) */}
+            <section className="p-10 bg-[#0d0e12] border border-white/[0.03] rounded-[3rem] space-y-10 shadow-2xl relative overflow-hidden">
+              <div className="flex items-center gap-4">
+                <Activity size={16} className="text-accent" />
+                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-text-muted/40 italic">Reading Protocol</span>
+                <div className="h-[1px] flex-1 bg-white/5" />
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5 flex items-center justify-between group hover:border-accent/40 transition-all">
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-accent">
+                      <Activity size={24} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-[0.3em] mb-1">Auto-Advance Engine</p>
+                      <p className="text-xs font-bold text-white uppercase italic tracking-widest">Seamless Sector Jump</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const newValue = autoAdvance === 'true' ? 'false' : 'true';
+                      await window.electron.invoke('set-setting', { key: 'auto_advance', value: newValue });
+                      setAutoAdvance(newValue);
+                    }}
+                    className={`w-14 h-8 rounded-full relative transition-all duration-500 ${autoAdvance === 'true' ? 'bg-accent shadow-[0_0_20px_rgba(255,77,77,0.3)]' : 'bg-white/10'}`}
+                  >
+                    <motion.div
+                      animate={{ x: autoAdvance === 'true' ? 24 : 4 }}
+                      className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-lg"
+                    />
+                  </button>
+                </div>
+
+                <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5 flex items-center justify-between group hover:border-accent/40 transition-all">
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-accent">
+                      <Activity size={24} strokeWidth={1.5} />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-text-muted/30 uppercase tracking-[0.3em] mb-1">App Window Size</p>
+                      <p className="text-xs font-bold text-white uppercase italic tracking-widest">Global Resolution Preset</p>
+                    </div>
+                  </div>
+                  <div className="h-9 px-1.5 bg-white/5 border border-white/10 rounded-xl flex items-center gap-1 shrink-0">
+                    {(['default', '800x1024'] as AppSizePreset[]).map((preset) => (
+                      <button
+                        key={preset}
+                        onClick={() => handleAppSizePreset(preset)}
+                        className={`h-7 px-2 rounded-md text-[8px] uppercase tracking-[0.16em] font-black transition-colors ${appSizePreset === preset
+                            ? 'bg-accent/20 text-accent border border-accent/30'
+                            : 'text-text-muted hover:text-white hover:bg-white/10 border border-transparent'
+                          }`}
+                      >
+                        {preset === 'default' ? 'App Default' : '800x1024'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Master Archive */}
             <section className="p-10 bg-[#0d0e12] border border-white/[0.03] rounded-[3rem] space-y-10 shadow-2xl relative overflow-hidden">
               <div className="flex items-center gap-4">
                 <Share size={16} className="text-accent" />
@@ -252,7 +526,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
               </div>
 
               <div className="grid grid-cols-2 gap-6">
-                <button 
+                <button
                   onClick={handleMasterExport}
                   disabled={isExporting}
                   className="p-8 bg-white/[0.02] border border-white/5 rounded-3xl flex flex-col items-center gap-5 group hover:bg-white/[0.04] hover:border-accent/40 transition-all relative overflow-hidden"
@@ -269,7 +543,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                   </div>
                 </button>
 
-                <button 
+                <button
                   onClick={() => setShowRestoreConfirm(true)}
                   className="p-8 bg-white/[0.02] border border-white/5 rounded-3xl flex flex-col items-center gap-5 group hover:bg-white/[0.04] hover:border-red-600/40 transition-all relative overflow-hidden"
                 >
@@ -288,19 +562,19 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
 
               <AnimatePresence>
                 {isExporting && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className="absolute inset-0 bg-background/90 backdrop-blur-md z-50 flex flex-col items-center justify-center space-y-6"
                   >
                     <div className="w-24 h-[2px] bg-white/5 rounded-full overflow-hidden">
-                       <motion.div 
+                      <motion.div
                         initial={{ x: '-100%' }}
                         animate={{ x: '100%' }}
                         transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                         className="w-full h-full bg-accent shadow-[0_0_10px_rgba(255,77,77,1)]"
-                       />
+                      />
                     </div>
                     <p className="text-[10px] font-black uppercase tracking-[0.5em] text-accent animate-pulse italic">Archiving Neural Library...</p>
                   </motion.div>
@@ -317,30 +591,30 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
               </div>
 
               <div className="bg-white/[0.01] p-10 rounded-[2.5rem] border border-white/[0.03] space-y-8">
-                 <div className="space-y-2">
-                    <p className="text-[9px] font-black uppercase tracking-[0.6em] text-text-muted opacity-30">CORE PROCESSOR</p>
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-3xl font-syncopate font-bold text-white italic tracking-tighter uppercase whitespace-nowrap">Chiyo Kernel</span>
-                      <span className="text-xs font-mono-tech text-accent">v1.1.0-REDMAGIC</span>
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black uppercase tracking-[0.6em] text-text-muted opacity-30">CORE PROCESSOR</p>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-3xl font-syncopate font-bold text-white italic tracking-tighter uppercase whitespace-nowrap">Chiyo Kernel</span>
+                    <span className="text-xs font-mono-tech text-accent">v1.1.12-Chiyo</span>
+                  </div>
+                </div>
+
+                <div className="h-[1px] w-full bg-white/5" />
+
+                <div className="space-y-5">
+                  {[
+                    { label: 'OS Engine', value: 'Electron v33' },
+                    { label: 'Neural Matrix', value: 'React 18' },
+                    { label: 'Data Hub', value: 'SQLite 3' },
+                    { label: 'Archive Core', value: 'AdmZip 0.5' }
+                  ].map((item) => (
+                    <div key={item.label} className="flex justify-between items-center text-[9px] font-mono-tech font-bold uppercase tracking-widest">
+                      <span className="text-text-muted/40">{item.label}</span>
+                      <div className="flex-1 border-b border-white/5 mx-6" />
+                      <span className="text-white italic">{item.value}</span>
                     </div>
-                 </div>
-
-                 <div className="h-[1px] w-full bg-white/5" />
-
-                 <div className="space-y-5">
-                    {[
-                      { label: 'OS Engine', value: 'Electron v33' },
-                      { label: 'Neural Matrix', value: 'React 18' },
-                      { label: 'Data Hub', value: 'SQLite 3' },
-                      { label: 'Archive Core', value: 'AdmZip 0.5' }
-                    ].map((item) => (
-                      <div key={item.label} className="flex justify-between items-center text-[9px] font-mono-tech font-bold uppercase tracking-widest">
-                        <span className="text-text-muted/40">{item.label}</span>
-                        <div className="flex-1 border-b border-white/5 mx-6" />
-                        <span className="text-white italic">{item.value}</span>
-                      </div>
-                    ))}
-                 </div>
+                  ))}
+                </div>
               </div>
             </section>
           </div>
@@ -349,23 +623,99 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
 
       {/* Restore Confirmation Modal */}
       <AnimatePresence>
+        {showResetOneConfirm && targetManga && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowResetOneConfirm(false)}
+              className="absolute inset-0 bg-background/90 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="relative w-full max-w-xl bg-[#0d0e12] border border-white/10 rounded-[2rem] p-8 space-y-6"
+            >
+              <h3 className="text-lg font-black uppercase tracking-[0.2em] text-white">Reset Manga Progress</h3>
+              <p className="text-sm text-text-muted">
+                Reset progress for <span className="text-white font-bold">{targetManga.title}</span> back to chapter 0 and clear its saved chapter history?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleResetSingle}
+                  disabled={isResettingProgress}
+                  className="flex-1 h-11 rounded-xl bg-red-600 text-white font-black uppercase tracking-[0.2em] text-[10px]"
+                >
+                  {isResettingProgress ? 'Resetting...' : 'Confirm Reset'}
+                </button>
+                <button
+                  onClick={() => setShowResetOneConfirm(false)}
+                  className="flex-1 h-11 rounded-xl bg-white/5 text-text-muted hover:text-white font-black uppercase tracking-[0.2em] text-[10px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showResetAllConfirm && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowResetAllConfirm(false)}
+              className="absolute inset-0 bg-background/90 backdrop-blur-xl"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              className="relative w-full max-w-xl bg-[#0d0e12] border border-red-600/30 rounded-[2rem] p-8 space-y-6"
+            >
+              <h3 className="text-lg font-black uppercase tracking-[0.2em] text-red-400">Reset All Progress Data</h3>
+              <p className="text-sm text-text-muted">
+                This will set all manga to chapter 0 and delete all chapter-level progress history for your library.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleResetAll}
+                  disabled={isResettingProgress}
+                  className="flex-1 h-11 rounded-xl bg-red-600 text-white font-black uppercase tracking-[0.2em] text-[10px]"
+                >
+                  {isResettingProgress ? 'Resetting...' : 'Confirm Global Reset'}
+                </button>
+                <button
+                  onClick={() => setShowResetAllConfirm(false)}
+                  className="flex-1 h-11 rounded-xl bg-white/5 text-text-muted hover:text-white font-black uppercase tracking-[0.2em] text-[10px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {showRestoreConfirm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-8">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowRestoreConfirm(false)}
               className="absolute inset-0 bg-background/95 backdrop-blur-2xl"
             />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-lg bg-[#0d0e12] border border-white/[0.05] rounded-[4rem] p-12 shadow-2xl space-y-10 overflow-hidden"
             >
               <div className="absolute top-0 left-0 w-full h-[2px] bg-red-600/20">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: '100%' }}
                   transition={{ duration: 0.8 }}
@@ -374,52 +724,52 @@ const Settings: React.FC<SettingsProps> = ({ onBack }) => {
               </div>
 
               <div className="flex items-center justify-center">
-                 <div className="w-20 h-20 rounded-3xl bg-red-600/10 flex items-center justify-center text-red-600 animate-pulse">
-                    <AlertTriangle size={40} />
-                 </div>
+                <div className="w-20 h-20 rounded-3xl bg-red-600/10 flex items-center justify-center text-red-600 animate-pulse">
+                  <AlertTriangle size={40} />
+                </div>
               </div>
 
               <div className="text-center space-y-3">
-                 <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-none">Neural Reconstitution</h3>
-                 <div className="flex flex-col gap-1 items-center">
-                    <span className="text-[10px] text-red-600/60 uppercase tracking-[0.4em] font-black">CRITICAL DATA OVERWRITE</span>
-                    <p className="text-[11px] text-text-muted uppercase tracking-widest font-black leading-relaxed max-w-sm mx-auto">
-                      Initiating this sequence will <span className="text-red-600 underline decoration-2 underline-offset-4">permanently purge</span> your current local core.
-                    </p>
-                 </div>
+                <h3 className="text-3xl font-black uppercase italic tracking-tighter text-white leading-none">Neural Reconstitution</h3>
+                <div className="flex flex-col gap-1 items-center">
+                  <span className="text-[10px] text-red-600/60 uppercase tracking-[0.4em] font-black">CRITICAL DATA OVERWRITE</span>
+                  <p className="text-[11px] text-text-muted uppercase tracking-widest font-black leading-relaxed max-w-sm mx-auto">
+                    Initiating this sequence will <span className="text-red-600 underline decoration-2 underline-offset-4">permanently purge</span> your current local core.
+                  </p>
+                </div>
               </div>
 
               <div className="p-8 bg-red-600/5 border border-red-600/10 rounded-3xl space-y-4">
-                 {[
-                   'Full Database Sync Replacement',
-                   'Complete Cover Archive Substitution',
-                   'Automated Relaunch Sequence'
-                 ].map((task) => (
-                   <div key={task} className="flex items-center gap-4">
-                      <div className="w-4 h-4 rounded bg-red-600/20 flex items-center justify-center">
-                        <Check size={10} className="text-red-500" />
-                      </div>
-                      <span className="text-[10px] font-mono-tech font-bold uppercase tracking-[0.2em] text-white/50">{task}</span>
-                   </div>
-                 ))}
+                {[
+                  'Full Database Sync Replacement',
+                  'Complete Cover Archive Substitution',
+                  'Automated Relaunch Sequence'
+                ].map((task) => (
+                  <div key={task} className="flex items-center gap-4">
+                    <div className="w-4 h-4 rounded bg-red-600/20 flex items-center justify-center">
+                      <Check size={10} className="text-red-500" />
+                    </div>
+                    <span className="text-[10px] font-mono-tech font-bold uppercase tracking-[0.2em] text-white/50">{task}</span>
+                  </div>
+                ))}
               </div>
 
               <div className="flex flex-col gap-4">
-                 <button 
+                <button
                   onClick={handleMasterRestore}
                   className="w-full py-5 bg-red-600 text-white rounded-2xl text-[12px] font-black uppercase tracking-[0.5em] italic hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_15px_30px_rgba(220,38,38,0.3)]"
-                 >
-                   Establish Link
-                 </button>
-                 <button 
+                >
+                  Establish Link
+                </button>
+                <button
                   onClick={() => setShowRestoreConfirm(false)}
                   className="w-full py-5 bg-white/5 text-text-muted rounded-2xl text-[10px] font-black uppercase tracking-[0.5em] hover:text-white transition-colors"
-                 >
-                   Abort Sequence
-                 </button>
+                >
+                  Abort Sequence
+                </button>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setShowRestoreConfirm(false)}
                 className="absolute top-8 right-8 p-2 text-text-muted hover:text-white transition-colors"
               >

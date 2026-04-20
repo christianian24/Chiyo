@@ -10,6 +10,7 @@ interface CustomSelectProps {
   icon?: React.ElementType;
   placeholder?: string;
   className?: string;
+  maxVisibleOptions?: number;
 }
 
 const CustomSelect: React.FC<CustomSelectProps> = ({ 
@@ -19,7 +20,8 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   onChange, 
   icon: Icon, 
   placeholder = 'Select...',
-  className = ''
+  className = '',
+  maxVisibleOptions
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,7 +69,8 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute z-[100] left-0 right-0 mt-2 py-2 bg-surface shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 rounded-xl backdrop-blur-2xl"
+              className="absolute z-[100] left-0 right-0 mt-2 py-2 bg-surface shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 rounded-xl backdrop-blur-2xl overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+              style={maxVisibleOptions ? { maxHeight: `${maxVisibleOptions * 40}px` } : undefined}
             >
               {options.map((opt) => {
                 const val = typeof opt === 'string' ? opt : opt.value;
