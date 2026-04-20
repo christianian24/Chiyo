@@ -595,7 +595,7 @@ const Settings: React.FC<SettingsProps> = ({ onBack, onAddCustomEntry }) => {
                   <p className="text-[9px] font-black uppercase tracking-[0.6em] text-text-muted opacity-30">CORE PROCESSOR</p>
                   <div className="flex justify-between items-baseline">
                     <span className="text-3xl font-syncopate font-bold text-white italic tracking-tighter uppercase whitespace-nowrap">Chiyo Kernel</span>
-                    <span className="text-xs font-mono-tech text-accent">v1.1.12(fix)-Chiyo</span>
+                    <span className="text-xs font-mono-tech text-accent">v1.1.12-fix-Chiyo</span>
                   </div>
                 </div>
 
